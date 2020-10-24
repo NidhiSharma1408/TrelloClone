@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_auth',
     'rest_framework.authtoken',
+    'userauth',   
 ]
 
 MIDDLEWARE = [
@@ -45,7 +46,7 @@ ROOT_URLCONF = 'trello.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR,'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -89,7 +90,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
+AUTH_USER_MODEL = 'userauth.User'
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
@@ -137,7 +138,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 #Email Notifications
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'info.the.flow.app@gmail.com'
-EMAIL_HOST_PASSWORD = os.environ.get('trello_email_pwd')
+EMAIL_HOST_USER = "info.the.flow.app@gmail.com"
+EMAIL_HOST_PASSWORD = os.environ.get('trello_email_pwd') #getting error when using this
+#EMAIL_HOST_PASSWORD = 'ayushnidhi' this line works perfectly
+#print(os.environ.get('trello_email_pwd')) output is : 'ayushnidhi'
 EMAIL_USE_TLS=True
 DEFAULT_FROM_EMAIL ='info.the.flow.app@gmail.com' 
