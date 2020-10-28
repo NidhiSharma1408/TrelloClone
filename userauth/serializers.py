@@ -1,15 +1,16 @@
 import json
-from rest_framework import serializers
+import urllib.request
+from userauth import views 
 from .models import User, UserProfile
+from django.conf import settings
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.settings import api_settings
 from django.contrib.auth.password_validation import validate_password
+from rest_framework import exceptions
+from rest_framework import serializers
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from userauth.models import User, OtpModel
-from rest_framework import exceptions
-from userauth import views 
-from django.conf import settings
-import urllib.request
+
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -25,6 +26,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         if user.is_active:
             if user.check_password(password):
                 data = super(MyTokenObtainPairSerializer, self).validate(attrs)
+                data.update({'id': self.user.profile.id})
                 data.update({'email': self.user.email})
                 data.update({'name' : self.user.profile.name})
                 try:
@@ -36,7 +38,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                     data.update({'picture': None})
                 return data                                                          #200
             raise exceptions.AuthenticationFailed("Entered password is wrong")       #401
-        views.send_otp_email(email, body = "Your email for The Flow App has not beenverified yet. Your OTP for verifying your account is",subject="Email Verification OTP for The Flow App")
+        views.send_otp_email(email, body = "Your email for The Flow App has not been verified yet. Your OTP for verifying your account is",subject="Email Verification OTP for The Flow App")
         raise exceptions.PermissionDenied("User is registered but not verified")     #403
 
 
@@ -50,8 +52,8 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     profile = UserProfileSerializer(required=True)
     class Meta:
         model = User
-        fields = ('id','email','password', 'profile',)
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ('id','email','pssword', 'profile',)
+        extra_kwargs = {'password': {'wraite_only': True}}
 
     def create(self, validated_data):
         profile_data = validated_data.pop('profile')
@@ -63,12 +65,11 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         return user
 
     def update(self, instance, validated_data):
-        if validate_data.has_key('profile'):
+        if 'profile' in validated_data:
             profile_data = validated_data.pop('profile')
-            profile = instance.profile
             UserProfileSerializer(instance.profile).update(instance=instance.profile,validated_data=profile_data)
         instance.email = validated_data.get('email', instance.email)
-        if validated_data.has_key('password'):
+        if 'password' in validated_data:
             new_password = validated_data['password']
             instance.set_password(new_password)
         instance.save()

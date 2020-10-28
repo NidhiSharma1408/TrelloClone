@@ -24,10 +24,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'rest_framework',
     'rest_auth',
     'rest_framework.authtoken',
     'userauth',   
+    'boards',
+    # 'allauth',
+    # 'allauth.account',
+    # 'allauth.socialaccount',
+    # 'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
@@ -119,12 +125,22 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.FormParser',
     ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 #jwt settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=150),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
 }
+# # authentication backend
+# AUTHENTICATION_BACKENDS = (
+#  'django.contrib.auth.backends.ModelBackend',
+#  'allauth.account.auth_backends.AuthenticationBackend',
+# )
+
+SITE_ID = 1
+LOGIN_REDIRECT_URL = '/'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
@@ -138,9 +154,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 #Email Notifications
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = "info.the.flow.app@gmail.com"
-EMAIL_HOST_PASSWORD = os.environ.get('trello_email_pwd') #getting error when using this
-#EMAIL_HOST_PASSWORD = 'ayushnidhi' this line works perfectly
-#print(os.environ.get('trello_email_pwd')) output is : 'ayushnidhi'
+EMAIL_HOST_USER = os.environ.get('trello_email')
+EMAIL_HOST_PASSWORD = os.environ.get('trello_email_pwd')
 EMAIL_USE_TLS=True
-DEFAULT_FROM_EMAIL ='info.the.flow.app@gmail.com' 
