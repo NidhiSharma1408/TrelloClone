@@ -29,17 +29,18 @@ class BoardSerializer(serializers.ModelSerializer):
     preference = PrefernceSerializer(required=True)
     class Meta:
         model = models.Board
-        fields = ['name','desc','team','admins','is_closed','personal','preference']
+        fields = ['id','name','desc','team','admins','is_closed','preference']
         extra_kwargs = {
-            'guests': {
+            'members': {
                 'required': False
             }
         }
     def to_representation(self,instance):
         response = super().to_representation(instance)
-        response['team'] = TeamSerializer(instance.team,context={'request':self.context.get('request')}).data
+        if instance.team is not None:
+            response['team'] = TeamSerializer(instance.team,context={'request':self.context.get('request')}).data
         response['admins'] = UserProfileSerializer(instance.admins,many=True,context={'request':self.context.get('request')}).data
-        response['guests'] = UserProfileSerializer(instance.guests,many=True,context={'request':self.context.get('request')}).data
+        response['members'] = UserProfileSerializer(instance.members,many=True,context={'request':self.context.get('request')}).data
         response['preference'] = PrefernceSerializer(instance.preference).data
         if self.context.get('request').user.profile.id in instance.starred_by.all():
             response['stared'] = True
@@ -52,15 +53,26 @@ class BoardSerializer(serializers.ModelSerializer):
         return response
 
     def create(self, validated_data):
-        pref_data = validated_data.pop('pref')
+        pref_data = validated_data.pop('preference')
         admins = validated_data.pop('admins')
-        guests=[]
-        if 'guests' in validated_data:
-            guests = validated_data.pop('guests')
+        members=[]
+        if 'members' in validated_data:
+            members = validated_data.pop('members')
         board = models.Board.objects.create(**validated_data) 
         for admin in admins:
             board.admins.add(admin)
-        for guest in guests:
-            board.guests.add(admin)
+        for member in members:
+            board.members.add(member)
         models.Preference.objects.create(board=board,**pref_data)
         return board
+    def update(self, instance, validated_data):
+        if 'preference' in validated_data:
+            pref_data = validated_data.pop('preference')
+            PreferenceSerializer(instance.preference).update(instance=instance.preference,validated_data=pref_data)
+        instance = super().update(instance, validated_data)
+        return instance
+
+class ListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.List
+        exclude = ['watched_by']

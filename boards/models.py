@@ -30,44 +30,49 @@ class Board(models.Model):
     name = models.CharField(max_length=50)
     desc = models.TextField(blank=True,null=True,verbose_name="description")
     team = models.ForeignKey(Team,on_delete=models.SET_NULL,null=True,related_name='boards')
-    guests = models.ManyToManyField(UserProfile,related_name="guest_in_boards")
+    members = models.ManyToManyField(UserProfile,related_name="member_in_boards")
     admins = models.ManyToManyField(UserProfile,related_name="admin_in_boards")
     starred_by = models.ManyToManyField(UserProfile,related_name="starred_boards")
     watched_by = models.ManyToManyField(UserProfile,related_name="watching_boards")
     is_closed = models.BooleanField(default=False)
-    personal = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.id} {self.name}"
 
 class Preference(models.Model):
     class comments(models.IntegerChoices):
-        disabled = 0,_("Disabled")
-        org = 1,_("Team Members and Guest Members")
-        members = 2,_("Only team or members associated with object(card/list/board)")
-        observers = 3,_("Only observers")
-        public = 4,_("Public")
+        disabled = 1,_("Disabled")
+        admins = 2,_("Admins")
+        members = 3,_("Admin and Board Members")
+        team_members = 4,_("Admin, Board Members, Guests and team members")
+        public = 5,_("anyone")
     class invitations(models.IntegerChoices):
-        admins = 0,_('Only admins can send invitation')
-        members =1,_('Only Members can send invitation')
+        admins = 0,_('Only admins can add and remove members from this board')
+        members =1,_('Only Members can add and remove members from this board')
     class permission(models.IntegerChoices):
-        org = 0,_("Team Members and Guest Members")
-        private = 1,_("Only admins and members")
-        public = 2,_("Public")
+        admins = 1,_("Admins")
+        members = 2,_("Admin and Board Members")
+        team_members = 3,_("Admin, Board Members, and team members")
+        public = 4,_("anyone")
     class voting(models.IntegerChoices):
-        disabled = 0,_("Disabled")
-        org = 1,_("Team Members and Guest Members")
-        members = 2,_("Only team or members associated with object(card/list/board)")
-        observers = 3,_("Only observers")
-        public = 4,_("Public")
+        disabled = 1,_("Disabled")
+        admins = 2,_("Admins")
+        members = 3,_("Admin and Board Members")
+        team_members = 4,_("Admin, Board Members, Guests and team members")
+        public = 5,_("anyone")
     self_join = models.BooleanField(default=True)
-    card_cover = models.BooleanField(default=True)
-    # background = models.OneToOneField(Background,on_delete=models.SET_NULL,null=True,related_name="pref_object")
+    card_cover = models.BooleanField(default=False)
     pref_comment = models.IntegerField(choices=comments.choices,default=comments.disabled)
     pref_invitation = models.IntegerField(choices=invitations.choices,default=invitations.members)
-    permission_level = models.IntegerField(choices=permission.choices,default=permission.org)
+    permission_level = models.IntegerField(choices=permission.choices,default=permission.team_members)
     pref_voting = models.IntegerField(choices=voting.choices,default=voting.disabled)
     board = models.OneToOneField(Board,on_delete=models.CASCADE,related_name="preference")
     def __str__(self):
         return f"{self.board.id}->{self.board.name}"
 
-
+class List(models.Model):
+    board = models.ForeignKey(Board,on_delete=models.CASCADE,related_name='lists')
+    name = models.CharField(max_length=30)
+    wathched_by = models.ManyToManyField(UserProfile,related_name='lists_watching')
+    archived = models.BooleanField(default=False)
+    def __str__(self):
+        return f"{self.id}->{self.name}->{self.board.id}->{self.board.name}"

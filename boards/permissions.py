@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-
+from . import models
 class IsMemberOrAllowed(BasePermission):
     def has_object_permission(self, request, view, obj):
         """
@@ -9,13 +9,18 @@ class IsMemberOrAllowed(BasePermission):
 
 class IsMember(BasePermission):
     def has_object_permission(self,request,view,obj):
-        print(view)
         return bool(request.user and request.user.profile in obj.members.all())
 
-class IsAdminOfBoard(BasePermission):
+class IsBoardAdmin(BasePermission):
     def has_object_permission(self,request,view,obj):
         return bool(request.user and request.user.profile in obj.admins.all())
 
-class IsAllowedInBoard(BasePermission):
+class IsAllowedToView(BasePermission):
     def has_object_permission(self,request,view,obj):
-        return bool(request.user and (request.user.profile in obj.team.members.all() or request.user.profile in obj.guests.all()))
+        if obj.preference.permission_level == models.Preference.permission.public:
+            return True
+        if obj.preference.permission_level == models.Preference.permission.team_members:
+            if request.user.profile in obj.team.members.all():
+                return True
+            else:
+                False
