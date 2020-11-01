@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'userauth',   
     'boards',
+    'corsheaders',
     # 'allauth',
     # 'allauth.account',
     # 'allauth.socialaccount',
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -46,7 +48,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
-
+CORS_ORIGIN_ALLOW_ALL = True
 ROOT_URLCONF = 'trello.urls'
 
 TEMPLATES = [
@@ -155,5 +157,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = os.environ.get('trello_email')
+# EMAIL_HOST_USER = 'info.the.flow.app@gmail.com'
 EMAIL_HOST_PASSWORD = os.environ.get('trello_email_pwd')
 EMAIL_USE_TLS=True

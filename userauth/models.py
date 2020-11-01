@@ -51,7 +51,7 @@ class UserProfile(models.Model):
     
 
 class OtpModel(models.Model):
-    otp          = models.CharField(max_length = 6)
+    otp          = models.IntegerField()
     otp_email    = models.EmailField()
     time_created = models.IntegerField()
     def __str__(self):

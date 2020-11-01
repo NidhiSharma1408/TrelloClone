@@ -22,7 +22,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         try:
             user = User.objects.get(email__iexact = email)
         except:
-            raise exceptions.ParseError("User with entered email doesn't exists.")   #400
+            raise exceptions.ParseError("User with entered email doesn't exist.")   #400
         if user.is_active:
             if user.check_password(password):
                 data = super(MyTokenObtainPairSerializer, self).validate(attrs)
@@ -52,8 +52,8 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     profile = UserProfileSerializer(required=True)
     class Meta:
         model = User
-        fields = ('id','email','pssword', 'profile',)
-        extra_kwargs = {'password': {'wraite_only': True}}
+        fields = ('id','email','password', 'profile',)
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         profile_data = validated_data.pop('profile')

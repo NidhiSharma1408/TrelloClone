@@ -76,3 +76,31 @@ class List(models.Model):
     archived = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.id}->{self.name}->{self.board.id}->{self.board.name}"
+
+class Card(models.Model):
+    name = models.CharField(max_length=50)
+    desc = models.TextField(blank=True,null=True)
+    members = models.ManyToManyField(UserProfile,related_name='member_in_card')
+    due_date = models.DateTimeField(null=True)
+    list = models.ForeignKey(List,on_delete=models.CASCADE,related_name='cards')
+    archived = models.BooleanField(default=False)
+    watched_by = models.ManyToManyField(UserProfile,related_name='watching_cards')
+    def __str__(self):
+        return f'{self.id}-{self.name}-{self.list.id}-{self.board.id}'
+    
+class Attached_file(models.Model):
+    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attachment_file')
+    file = models.FileField(null=False)
+
+class Attached_link(models.Model):
+    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attached_link')
+    link = models.URLField(blank=False,null=False)
+
+class Checklist(models.Model):
+    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='checklists')
+    name = models.CharField(default='Checklist',max_length=50)
+
+class Task(models.Model):
+    checklist = models.ForeignKey(Checklist,on_delete=models.CASCADE,related_name='tasks')
+    name = models.CharField(max_length=50,null=False)
+    completed = models.BooleanField(default=False)

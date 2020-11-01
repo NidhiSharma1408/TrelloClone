@@ -38,8 +38,9 @@ def get_tokens_for_user(user,request):
 def send_otp_email(email, body,subject):
     # print(password)
     OtpModel.objects.filter(otp_email__iexact = email).delete()
-    letters = string.ascii_lowercase+string.digits+string.ascii_uppercase
-    otp = ''.join(random.choice(letters) for i in range(6))
+    # letters = string.ascii_lowercase+string.digits+string.ascii_uppercase
+    # otp = ''.join(random.choice(letters) for i in range(6))
+    otp = random.randint(100000,999999)
     time_of_creation = int(time.time())
     context = {
         'otp' : otp,
@@ -57,7 +58,7 @@ def otp_delete(request_email):
         otp = OtpModel.objects.get(otp_email=request_email)
     except:
         return 2 
-    if int(time.time()) - otp.time_created < 120:
+    if int(time.time()) - otp.time_created < 60:
         return 0
     if int(time.time()) - otp.time_created > 300:
         otp.delete()
@@ -76,6 +77,7 @@ class UserViewSet(ModelViewSet):
     search_fields = ["email",'profile__name']
     def create(self, request):
         data = request.data
+        print(data)
         try:
             email = data["email"]
         except:
@@ -110,6 +112,7 @@ class UserViewSet(ModelViewSet):
 class OTPVerificationView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
+        print(request.data)
         otp = request.data.get("otp","")
         email = request.data.get("email", "")
         current_time = int(time.time())
@@ -120,7 +123,7 @@ class OTPVerificationView(APIView):
         otpmodel_email      = query.otp_email 
         otpmodel_otp        = query.otp
         otp_creation_time   = query.time_created
-        if email == otpmodel_email and otp == otpmodel_otp and (current_time - otp_creation_time < 300):
+        if (email == otpmodel_email and otp == otpmodel_otp and (current_time - otp_creation_time < 300)):
             user  =  User.objects.get(email__iexact = email)
             user.is_active = True
             user.save()
@@ -129,7 +132,7 @@ class OTPVerificationView(APIView):
             context = {'body':mail_body}
             html_content = loader.render_to_string('userauth/info_mail.html', context)
             send_mail("Account Verification Successful", mail_body,'info.the.flow.app@gmail.com',[email,], html_message = html_content, fail_silently = False) 
-            return Response(status = status.HTTP_202_ACCEPTED)
+            return Response(get_tokens_for_user(user,request),status = status.HTTP_202_ACCEPTED)
         return Response(status = status.HTTP_400_BAD_REQUEST)
 
 
@@ -142,7 +145,7 @@ class PasswordResetView(APIView):
         except: 
             return Response({"detail" : "No such account exists"},status = status.HTTP_400_BAD_REQUEST)
         if otp_delete(request_email) == 0:
-            return Response({"detail":"OTP was sent less than 2 minutes ago."},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail":"OTP was sent less than a minute ago."},status=status.HTTP_400_BAD_REQUEST)
         if not user.is_active:
             send_otp_email(request_email, body = f"You have not verified your email {request_email} yet. This email will let you change your password and Verify your email in a single step. Your OTP for the same is",
             subject= "Verify email and change password OTP for The Flow App")
@@ -180,6 +183,6 @@ class OTPResend(APIView):
         except:
             return Response({"detail" : "No account with this email found"},status = status.HTTP_400_BAD_REQUEST)
         if otp_delete(email) == 0:
-            return Response({"detail":"OTP was sent less than 2 minutes ago."},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail":"OTP was sent less than a minute ago."},status=status.HTTP_403_FORBIDDEN)
         send_otp_email(email, body = "Your New OTP is ",subject="New OTP for The Flow App")
         return Response({"detail" : "An OTP has been sent to provided Email"}, status = status.HTTP_202_ACCEPTED)
