@@ -3,6 +3,7 @@ from pathlib import Path
 import dj_database_url
 from django.conf import settings
 import os
+import django_heroku
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -175,11 +176,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = os.environ.get('EMAIL')
-# EMAIL_HOST_USER = 'info.the.flow.app@gmail.com'
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PWD')
 EMAIL_USE_TLS=True
-
-try:
-   from .local_settings import *
-except:
-    pass
+django_heroku.settings(locals())
