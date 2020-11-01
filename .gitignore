@@ -126,9 +126,6 @@ venv.bak/
 # Spyder project settings
 .spyderproject
 .spyproject
-Procfile
-requirements.txt
-runtime.txt
 # Rope project settings
 .ropeproject
 
