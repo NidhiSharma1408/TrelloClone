@@ -23,22 +23,65 @@ class PrefernceSerializer(serializers.ModelSerializer):
         response['pref_invitation'] = models.Preference.invitations(instance.pref_invitation).label
         response['permission_level'] = models.Preference.permission(instance.permission_level).label
         return response
+
+class TaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Task
+        fields = '__all__'
     
+
+class ChecklistSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Checklist
+        fields = '__all__'
+    def to_representation(self,instance):
+        response = super().to_representation(instance)
+        response['tasks'] = TaskSerializer(instance.tasks,many=True).data
+
+class AttachedFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Attached_file
+        fields ='__all__'
+
+class AttachedLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Attached_link
+        fields = '__all__'
+
+class CardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Card
+        exclude = ['watched_by','members']
+    def to_representation(self,instance):
+        response = super().to_representation(instance)
+        response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
+        response['attachment_links'] = AttachedLinkSerializer(instance.attached_links,many=True,context={'request' : self.context.get('request')}).data
+        response['attachment_files'] = AttachedFileSerializer(instance.attached_files,many=True,context={'request' : self.context.get('request')}).data
+        response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
+        response['members'] = UserProfileSerializer(instance.members,many=True,context={'request' : self.context.get('request')}).data
+        return response
+
+
+class ListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.List
+        exclude = ['watched_by']
+    def to_representation(self,instance):
+        response = super().to_representation(instance)
+        response['cards'] = CardSerializer(instance.cards,many=True,context={'request' : self.context.get('request')}).data
+        return response
 
 class BoardSerializer(serializers.ModelSerializer):
     preference = PrefernceSerializer(required=True)
     class Meta:
         model = models.Board
-        fields = ['id','name','desc','team','admins','is_closed','preference']
-        extra_kwargs = {
-            'members': {
-                'required': False
-            }
-        }
+        fields = ['id','name','desc','team','admins','is_closed','preference','members']
+
     def to_representation(self,instance):
         response = super().to_representation(instance)
-        if instance.team is not None:
-            response['team'] = TeamSerializer(instance.team,context={'request':self.context.get('request')}).data
+        if instance.team:
+            response['team'] = {'id': instance.team.id, 'name': instance.team.name}
+        response['lists'] = ListSerializer(instance.lists,many=True,context={'request' : self.context.get('request')}).data
         response['admins'] = UserProfileSerializer(instance.admins,many=True,context={'request':self.context.get('request')}).data
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request':self.context.get('request')}).data
         response['preference'] = PrefernceSerializer(instance.preference).data
@@ -55,9 +98,7 @@ class BoardSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         pref_data = validated_data.pop('preference')
         admins = validated_data.pop('admins')
-        members=[]
-        if 'members' in validated_data:
-            members = validated_data.pop('members')
+        members = validated_data.pop('members')
         board = models.Board.objects.create(**validated_data) 
         for admin in admins:
             board.admins.add(admin)
@@ -72,7 +113,3 @@ class BoardSerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         return instance
 
-class ListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.List
-        exclude = ['watched_by']

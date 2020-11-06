@@ -72,7 +72,7 @@ class Preference(models.Model):
 class List(models.Model):
     board = models.ForeignKey(Board,on_delete=models.CASCADE,related_name='lists')
     name = models.CharField(max_length=30)
-    wathched_by = models.ManyToManyField(UserProfile,related_name='lists_watching')
+    watched_by = models.ManyToManyField(UserProfile,related_name='lists_watching')
     archived = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.id}->{self.name}->{self.board.id}->{self.board.name}"
@@ -82,6 +82,7 @@ class Card(models.Model):
     desc = models.TextField(blank=True,null=True)
     members = models.ManyToManyField(UserProfile,related_name='member_in_card')
     due_date = models.DateTimeField(null=True)
+    complete = models.BooleanField(default=False)
     list = models.ForeignKey(List,on_delete=models.CASCADE,related_name='cards')
     archived = models.BooleanField(default=False)
     watched_by = models.ManyToManyField(UserProfile,related_name='watching_cards')
@@ -89,11 +90,11 @@ class Card(models.Model):
         return f'{self.id}-{self.name}-{self.list.id}-{self.board.id}'
     
 class Attached_file(models.Model):
-    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attachment_file')
+    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attached_files')
     file = models.FileField(null=False)
 
 class Attached_link(models.Model):
-    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attached_link')
+    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attached_links')
     link = models.URLField(blank=False,null=False)
 
 class Checklist(models.Model):

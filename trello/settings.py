@@ -135,7 +135,6 @@ USE_TZ = True
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-        'rest_framework.permissions.IsAdminUser',
         ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
     'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -179,3 +178,5 @@ EMAIL_HOST_USER = os.environ.get('EMAIL')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PWD')
 EMAIL_USE_TLS=True
 django_heroku.settings(locals())
+
+from .local_settings import *

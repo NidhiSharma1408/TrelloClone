@@ -9,11 +9,11 @@ class IsMemberOrAllowed(BasePermission):
 
 class IsMember(BasePermission):
     def has_object_permission(self,request,view,obj):
-        return bool(request.user and request.user.profile in obj.members.all())
+        return bool(request.user and (request.user.profile in obj.members.all()))
 
 class IsBoardAdmin(BasePermission):
     def has_object_permission(self,request,view,obj):
-        return bool(request.user and request.user.profile in obj.admins.all())
+        return bool(request.user and (request.user.profile in obj.admins.all()))
 
 class IsAllowedToView(BasePermission):
     def has_object_permission(self,request,view,obj):
