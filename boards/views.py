@@ -473,16 +473,16 @@ class VoteCardView(APIView):
         card = self.get_card(card_id)
         if card.list.board.preference.pref_voting == models.Preference.voting.disabled:
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            if card.list.board.preference.pref_voting == models.Preference.voting.admins:
-                if request.user.profile not in board.admins.all():
+        if card.list.board.preference.pref_voting == models.Preference.voting.admins:
+            if request.user.profile not in board.admins.all():
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        if card.list.board.preference.pref_voting == models.Preference.voting.members:
+            if request.user.profile not in board.members.all():
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        if card.list.board.preference.pref_voting == models.Preference.voting.team_members:
+            if board.team:
+                if request.user.profile not in board.team.members.all():
                     return Response(status=status.HTTP_403_FORBIDDEN)
-            if card.list.board.preference.pref_voting == models.Preference.voting.members:
-                if request.user.profile not in board.members.all():
-                    return Response(status=status.HTTP_403_FORBIDDEN)
-            if card.list.board.preference.pref_voting == models.Preference.voting.team_members:
-                if board.team:
-                    if request.user.profile not in board.team.members.all():
-                        return Response(status=status.HTTP_403_FORBIDDEN)
         if request.user.profile in card.voted_by.all():
             card.voted_by.remove(request.user.profile)
             return Response("voted card")
@@ -491,3 +491,19 @@ class VoteCardView(APIView):
             return Response('unvoted card')
 
 
+class CreateLabelView(APIView):
+    def get_card(self,card_id):
+        try:
+            return models.Card.objects.get(id=card_id)
+        except:
+            raise Http404
+    def post(self,request,card_id):
+        card = self.get_card(card_id)
+        if request.user.profile not in card.list.board.members.all():
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        data = request.data
+        data['card'] = card.id
+        serializer = serializers.LabelSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data,status=status.HTTP_201_CREATED)

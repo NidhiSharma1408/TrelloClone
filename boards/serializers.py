@@ -64,8 +64,14 @@ class CardSerializer(serializers.ModelSerializer):
         response['attachment_files'] = AttachedFileSerializer(instance.attached_files,many=True,context={'request' : self.context.get('request')}).data
         response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request' : self.context.get('request')}).data
-        response['votes'] = UserProfileSerializer(instance.voted_by,many=True,context={'request' : self.context.get('request')}).data        return response
+        response['votes'] = UserProfileSerializer(instance.voted_by,many=True,context={'request' : self.context.get('request')}).data        
+        response['label'] = LabelSerializer(instance.label,many=True).data
         return response
+
+class LabelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Label
+        fields ='__all__'
 
 class ListSerializer(serializers.ModelSerializer):
     class Meta:

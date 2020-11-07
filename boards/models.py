@@ -114,3 +114,8 @@ class Comment(models.Model):
     user = models.ForeignKey(UserProfile,on_delete=models.CASCADE,related_name='comments')
     created_at = models.DateTimeField(auto_now=True)
 
+class Label(models.Model):
+    color = models.CharField(max_length=6)
+    name = models.CharField(max_length=30)
+    card = models.ForeignKey(Board,on_delete=models.CASCADE,related_name='label')
+
