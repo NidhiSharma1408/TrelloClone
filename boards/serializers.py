@@ -28,7 +28,11 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Task
         fields = '__all__'
-    
+
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Comment
+        fields = '__all__'
 
 class ChecklistSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,6 +41,7 @@ class ChecklistSerializer(serializers.ModelSerializer):
     def to_representation(self,instance):
         response = super().to_representation(instance)
         response['tasks'] = TaskSerializer(instance.tasks,many=True).data
+        return response
 
 class AttachedFileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,7 +56,7 @@ class AttachedLinkSerializer(serializers.ModelSerializer):
 class CardSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Card
-        exclude = ['watched_by','members']
+        exclude = ['voted_by','watched_by','members']
     def to_representation(self,instance):
         response = super().to_representation(instance)
         response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
@@ -59,8 +64,8 @@ class CardSerializer(serializers.ModelSerializer):
         response['attachment_files'] = AttachedFileSerializer(instance.attached_files,many=True,context={'request' : self.context.get('request')}).data
         response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request' : self.context.get('request')}).data
+        response['votes'] = UserProfileSerializer(instance.voted_by,many=True,context={'request' : self.context.get('request')}).data        return response
         return response
-
 
 class ListSerializer(serializers.ModelSerializer):
     class Meta:

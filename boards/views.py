@@ -256,7 +256,7 @@ class MakeAdminOrRemoveFromAdmins(APIView):
             board.admins.remove(member)
         else:
             board.admins.add(member)
-        return Response({"detail" : "changed permission on member successfully"})
+        return Response({"detail" : "changed permission of member successfully"})
     
 class CreateListView(APIView):
     def post(self,request,id,format=None):
@@ -296,7 +296,7 @@ class WatchUnwatchList(APIView):
             list.watched_by.add(request.user.profile)
             return Response('notwatching list')
 
-class WatchUnwatchcard(APIView):
+class WatchUnwatchCard(APIView):
     def put(self,request,card_id):
         try:
             card = models.Card.objects.get(id=card_id)
@@ -434,3 +434,60 @@ class TaskActionsView(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class AddCommentView(APIView):
+    def get_card(self,card_id):
+        try:
+            return models.Card.objects.get(id=card_id)
+        except:
+            raise Http404
+    def post(self,request,card_id):
+        card = self.get_card(card_id)
+        if card.list.board.preference.pref_comment == models.Preference.comments.disabled:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        if card.list.board.preference.pref_comment == models.Preference.comments.admins:
+            if request.user.profile not in board.admins.all():
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        if card.list.board.preference.pref_comment == models.Preference.comments.members:
+            if request.user.profile not in board.members.all():
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        if card.list.board.preference.pref_comment == models.Preference.comments.team_members:
+            if board.team:
+                if request.user.profile not in board.team.members.all():
+                    return Response(status=status.HTTP_403_FORBIDDEN)
+        data = request.data
+        data['card'] = card.id
+        data['user'] = request.user.profile.id
+        serializer = serializers.CommentSerializer(data)
+        serializer.is_valid(raise_exception=True)
+        seriailzer.save()
+        return Response(serializer.data,status=status.HTTP_201_CREATED)
+
+class VoteCardView(APIView):
+    def get_card(self,card_id):
+        try:
+            return models.Card.objects.get(id=card_id)
+        except:
+            raise Http404
+    def post(self,request,card_id):
+        card = self.get_card(card_id)
+        if card.list.board.preference.pref_voting == models.Preference.voting.disabled:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            if card.list.board.preference.pref_voting == models.Preference.voting.admins:
+                if request.user.profile not in board.admins.all():
+                    return Response(status=status.HTTP_403_FORBIDDEN)
+            if card.list.board.preference.pref_voting == models.Preference.voting.members:
+                if request.user.profile not in board.members.all():
+                    return Response(status=status.HTTP_403_FORBIDDEN)
+            if card.list.board.preference.pref_voting == models.Preference.voting.team_members:
+                if board.team:
+                    if request.user.profile not in board.team.members.all():
+                        return Response(status=status.HTTP_403_FORBIDDEN)
+        if request.user.profile in card.voted_by.all():
+            card.voted_by.remove(request.user.profile)
+            return Response("voted card")
+        else:
+            card.voted_by.add(request.user.profile)
+            return Response('unvoted card')
+
+

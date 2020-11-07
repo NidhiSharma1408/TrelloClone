@@ -66,6 +66,7 @@ class Preference(models.Model):
     permission_level = models.IntegerField(choices=permission.choices,default=permission.team_members)
     pref_voting = models.IntegerField(choices=voting.choices,default=voting.disabled)
     board = models.OneToOneField(Board,on_delete=models.CASCADE,related_name="preference")
+    voting_visible = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.board.id}->{self.board.name}"
 
@@ -86,6 +87,7 @@ class Card(models.Model):
     list = models.ForeignKey(List,on_delete=models.CASCADE,related_name='cards')
     archived = models.BooleanField(default=False)
     watched_by = models.ManyToManyField(UserProfile,related_name='watching_cards')
+    voted_by = models.ManyToManyField(UserProfile,related_name='voted_cards')
     def __str__(self):
         return f'{self.id}-{self.name}-{self.list.id}-{self.board.id}'
     
@@ -105,3 +107,10 @@ class Task(models.Model):
     checklist = models.ForeignKey(Checklist,on_delete=models.CASCADE,related_name='tasks')
     name = models.CharField(max_length=50,null=False)
     completed = models.BooleanField(default=False)
+
+class Comment(models.Model):
+    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='comments')
+    text = models.TextField(blank=False)
+    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE,related_name='comments')
+    created_at = models.DateTimeField(auto_now=True)
+

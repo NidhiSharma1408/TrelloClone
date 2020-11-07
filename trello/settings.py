@@ -178,5 +178,7 @@ EMAIL_HOST_USER = os.environ.get('EMAIL')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PWD')
 EMAIL_USE_TLS=True
 django_heroku.settings(locals())
-
-from .local_settings import *
+try:
+    from .local_settings import *
+except:
+    pass
