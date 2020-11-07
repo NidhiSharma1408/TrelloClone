@@ -45,7 +45,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):    
     class Meta:
         model = UserProfile
-        fields = ('id','name','picture')
+        fields = ('id','name','picture','bio')
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):

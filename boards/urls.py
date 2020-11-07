@@ -23,7 +23,7 @@ urlpatterns = [
     path('checklists/<int:checklist_id>/tasks/',views.CreateTaskView.as_view()),
     path('checklists/<int:checklist_id>/edit/',views.EditChecklistView.as_view()),
     path('tasks/<int:task_id>/edit/',views.TaskActionsView.as_view()),
-    path('cards/<int:card_id>/comments/',views.AddCommentView.as_view()),
+    path('cards/<int:card_id>/comments/',views.CommentView.as_view()),
     path('cards/<int:card_id>/vote/',views.VoteCardView.as_view()),
     path('cards/<int:card_id>/label/',views.CreateLabelView.as_view()),
 ]

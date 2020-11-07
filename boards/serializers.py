@@ -12,7 +12,7 @@ class TeamSerializer(serializers.ModelSerializer):
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request':self.context.get('request')}).data
         return response
         
-class PrefernceSerializer(serializers.ModelSerializer):
+class PreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Preference
         exclude = ['board']
@@ -33,6 +33,10 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Comment
         fields = '__all__'
+    def to_representation(self,instance):
+        response = super().to_representation(instance)
+        response['user'] = UserProfileSerializer(instance.user,context={'request':self.context.get('request')}).data
+        return response
 
 class ChecklistSerializer(serializers.ModelSerializer):
     class Meta:
@@ -83,7 +87,7 @@ class ListSerializer(serializers.ModelSerializer):
         return response
 
 class BoardSerializer(serializers.ModelSerializer):
-    preference = PrefernceSerializer(required=True)
+    preference = PreferenceSerializer(required=True)
     class Meta:
         model = models.Board
         fields = ['id','name','desc','team','admins','is_closed','preference','members']
@@ -95,7 +99,7 @@ class BoardSerializer(serializers.ModelSerializer):
         response['lists'] = ListSerializer(instance.lists,many=True,context={'request' : self.context.get('request')}).data
         response['admins'] = UserProfileSerializer(instance.admins,many=True,context={'request':self.context.get('request')}).data
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request':self.context.get('request')}).data
-        response['preference'] = PrefernceSerializer(instance.preference).data
+        response['preference'] = PreferenceSerializer(instance.preference).data
         if self.context.get('request').user.profile.id in instance.starred_by.all():
             response['stared'] = True
         else:
@@ -124,3 +128,8 @@ class BoardSerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         return instance
 
+class ActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Activity
+        fields = '__all__'
+    

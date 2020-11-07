@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 from userauth.models import UserProfile
 
@@ -25,6 +26,7 @@ class Team(models.Model):
     is_private = models.BooleanField(default=True)
     def __str__(self):
         return f"{self.id}-{self.name}"
+    
 
 class Board(models.Model):
     name = models.CharField(max_length=50)
@@ -81,6 +83,7 @@ class List(models.Model):
 class Card(models.Model):
     name = models.CharField(max_length=50)
     desc = models.TextField(blank=True,null=True)
+    priority = models.PositiveIntegerField(default=1,validators=[MaxValueValidator(10)])
     members = models.ManyToManyField(UserProfile,related_name='member_in_card')
     due_date = models.DateTimeField(null=True)
     complete = models.BooleanField(default=False)
@@ -89,8 +92,11 @@ class Card(models.Model):
     watched_by = models.ManyToManyField(UserProfile,related_name='watching_cards')
     voted_by = models.ManyToManyField(UserProfile,related_name='voted_cards')
     def __str__(self):
-        return f'{self.id}-{self.name}-{self.list.id}-{self.board.id}'
-    
+        return f'{self.id}-{self.name}-{self.list.id}-{self.list.board.id}'
+    class Meta:
+        ordering = ['-priority']
+
+
 class Attached_file(models.Model):
     card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attached_files')
     file = models.FileField(null=False)
@@ -117,5 +123,10 @@ class Comment(models.Model):
 class Label(models.Model):
     color = models.CharField(max_length=6)
     name = models.CharField(max_length=30)
-    card = models.ForeignKey(Board,on_delete=models.CASCADE,related_name='label')
+    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='label')
+
+class Activity(models.Model):
+    description = models.TextField()
+    time_created = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(UserProfile,on_delete=models.DO_NOTHING,related_name='activity')
 
