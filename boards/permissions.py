@@ -24,3 +24,13 @@ class IsAllowedToView(BasePermission):
                 return True
             else:
                 False
+def is_allowed_to_watch_or_star(request,board):
+    if board.preference.permission_level == models.Preference.permission.public:
+            return True
+    elif board.preference.permission_level == models.Preference.permission.team_members:
+        if request.user.profile in board.team.members.all():
+            return True
+    elif request.user.profile in board.members.all():
+        return True
+    else:
+        return False

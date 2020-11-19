@@ -39,7 +39,9 @@ class Board(models.Model):
     is_closed = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.id} {self.name}"
-
+    class Meta:
+        ordering = ['team','-id']
+        
 class Preference(models.Model):
     class comments(models.IntegerChoices):
         disabled = 1,_("Disabled")
@@ -48,13 +50,12 @@ class Preference(models.Model):
         team_members = 4,_("Admin, Board Members, Guests and team members")
         public = 5,_("anyone")
     class invitations(models.IntegerChoices):
-        admins = 0,_('Only admins can add and remove members from this board')
-        members =1,_('Only Members can add and remove members from this board')
+        admins = 1,_('Only admins can add and remove members from this board')
+        members =3,_('Only Members can add and remove members from this board')
     class permission(models.IntegerChoices):
-        admins = 1,_("Admins")
-        members = 2,_("Admin and Board Members")
-        team_members = 3,_("Admin, Board Members, and team members")
-        public = 4,_("anyone")
+        members = 3,_("Admin and Board Members")
+        team_members = 4,_("Admin, Board Members, and team members")
+        public = 5,_("anyone")
     class voting(models.IntegerChoices):
         disabled = 1,_("Disabled")
         admins = 2,_("Admins")
@@ -75,7 +76,7 @@ class Preference(models.Model):
 class List(models.Model):
     board = models.ForeignKey(Board,on_delete=models.CASCADE,related_name='lists')
     name = models.CharField(max_length=30)
-    watched_by = models.ManyToManyField(UserProfile,related_name='lists_watching')
+    watched_by = models.ManyToManyField(UserProfile,related_name='watching_lists')
     archived = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.id}->{self.name}->{self.board.id}->{self.board.name}"
@@ -83,7 +84,7 @@ class List(models.Model):
 class Card(models.Model):
     name = models.CharField(max_length=50)
     desc = models.TextField(blank=True,null=True)
-    priority = models.PositiveIntegerField(default=1,validators=[MaxValueValidator(10)])
+    index = models.PositiveIntegerField(blank=False)
     members = models.ManyToManyField(UserProfile,related_name='member_in_card')
     due_date = models.DateTimeField(null=True)
     complete = models.BooleanField(default=False)
@@ -94,7 +95,7 @@ class Card(models.Model):
     def __str__(self):
         return f'{self.id}-{self.name}-{self.list.id}-{self.list.board.id}'
     class Meta:
-        ordering = ['-priority']
+        ordering = ['index','id']
 
 
 class Attached_file(models.Model):

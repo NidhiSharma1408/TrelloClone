@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Q,F
 from django.http import Http404
 from django.template import loader
 from django.shortcuts import render
@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated,IsAdminUser,IsAuthenticatedOrReadOnly
 from userauth.models import UserProfile
-from .permissions import IsBoardAdmin,IsAllowedToView,IsMember,IsMemberOrAllowed
+from .permissions import IsBoardAdmin,IsAllowedToView,IsMember,IsMemberOrAllowed,is_allowed_to_watch_or_star
 from . import models,serializers
 
 def send_email_to_object_watchers(object,mail_body,mail_subject):
@@ -178,29 +178,14 @@ class BoardView(ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         all_boards = request.user.profile.member_in_boards.all()
-        personal_boards = []
-        starred_boards = []
-        team_boards = []
-        for board in all_boards:
-            if request.user.profile in board.starred_by.all():
-                starred_boards.append({'id' : board.id,'name' : board.name,'desc' : board.desc,'starred' : True})
-                if board.team == None:
-                    personal_boards.append({'id' : board.id,'name' : board.name,'desc' : board.desc,'starred' : True })
-                elif request.user.profile not in board.team.members.all():
-                    personal_boards.append({'id' : board.id,'name' : board.name,'desc' : board.desc,'starred' : True })
-                else:
-                    team_boards.append({'id' : board.id,'name' : board.name,'desc' : board.desc,'starred' : True})
-            else:
-                if board.team == None:
-                    personal_boards.append({'id' : board.id,'name' : board.name,'desc' : board.desc,'starred' : False})
-                elif request.user.profile not in board.team.members.all():
-                    personal_boards.append({'id' : board.id,'name' : board.name,'desc' : board.desc,'starred' : False})
-                else:
-                    team_boards.append({'id' : board.id,'name' : board.name,'desc' : board.desc,'starred' : False})
+        personal_boards = request.user.profile.member_in_boards.filter(team=None)
+        starred_boards = request.user.profile.starred_boards.all()
+        team_boards_id = request.user.profile.teams.all().values_list('boards',flat=True)
+        team_boards = models.Board.objects.filter(id__in=team_boards_id,members=request.user.profile)
         queryset = {
-            "personal_boards" : personal_boards,
-            "starred_boards" : starred_boards,
-            "team_baords" : team_boards
+            "personal_boards" : serializers.BoardListSerializer(personal_boards,many=True,context={"request":request}).data,
+            "starred_boards" : serializers.BoardListSerializer(starred_boards,many=True,context={"request":request}).data,
+            "team_baords" : serializers.BoardListSerializer(team_boards,many=True,context={"request":request}).data
         }
         return Response(queryset)
 
@@ -268,16 +253,16 @@ class EditMembersInBoard(APIView):
         mail_body = f"{request.user.profile.name} left the board {board.name}.\n You are receiving this email because you are watching the board {board.name}. If you don't want to receive such emails, you can unwatch the board."
         mail_subject = f"{board.name}(Board)"
         send_email_to_object_watchers(board,mail_body,mail_subject)
-        return Response({"detail":"succesully left board"},status=status.HTTP_200_OK)
+        return Response({"detail":"succesfully left board"},status=status.HTTP_200_OK)
 
     def patch(self,request,id): # remove member
         board = get_board(request,id)
         if board.preference.pref_invitation == models.Preference.invitations.members or (request.user.profile in board.admins.all()):
             member = request.data.get("member",None)
             try:
-                member = UserProfile.objects.get(id=member)
+                member = board.members.get(id=member)
             except:
-                raise Http404
+                return Response({"detail": "No such member found."},status=status.HTTP_400_BAD_REQUEST)
             if board.members.count() ==1 or (member in board.admins.all() and board.admins.count()==1):
                 return Response({"detail":"board must have at least one member and admin"},status=status.HTTP_400_BAD_REQUEST)
             board.members.remove(member)
@@ -289,13 +274,17 @@ class EditMembersInBoard(APIView):
             mail_body = f"{member.name} was removed from the board {board.name}.\n You are receiving this email because you are watching the board {board.name}. If you don't want to receive such emails, you can unwatch the board."
             mail_subject = f"{board.name}(Board)"
             send_email_to_object_watchers(board,mail_body,mail_subject)
-            return Response({"detail":"succesully removed from board"},status=status.HTTP_200_OK)
+            return Response({"detail":"succesfully removed from board"},status=status.HTTP_200_OK)
         return Response(status=status.HTTP_403_FORBIDDEN)
     
 class StarUnstarBoard(APIView):
-    permission_classes = [IsAuthenticated]
     def put(self,request,id):
-        board = get_board(request,id)
+        try:
+            board = models.Boards.objects.get(id=id)
+        except:
+            raise Http404
+        if not is_allowed_to_watch_or_star(request,board):
+            return Response(status=status.HTTP_403_FORBIDDEN)
         if request.user.profile in board.starred_by.all():
             board.starred_by.remove(request.user.profile)
             return Response({"detail": "unstarred board"})
@@ -305,7 +294,12 @@ class StarUnstarBoard(APIView):
     
 class WatchUnwatchBoard(APIView):
     def put(self,request,id):
-        board = get_board(request,id)
+        try:
+            board = models.Boards.objects.get(id=id)
+        except:
+            raise Http404
+        if not is_allowed_to_watch_or_star(request,board):
+            return Response(status=status.HTTP_403_FORBIDDEN)
         if request.user.profile in board.watched_by.all():
             board.watched_by.remove(request.user.profile)
             return Response({"detail":"watching board"})
@@ -317,14 +311,12 @@ class MakeAdminOrRemoveFromAdmins(APIView):
     def patch(self,request,id):
         board = get_board(request,id)
         if request.user.profile not in board.admins.all():
-            return Response(status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail":"You are not an admin of the board so you are not allowed to perform this action"},status=status.HTTP_403_FORBIDDEN)
         member = request.data.get('member')
         try:
-            member = UserProfile.objects.get(id=member)
+            member = board.members.get(id=member)
         except:
-            raise Http404
-        if member not in board.members.all():
-            raise Http404
+            return Response({"detail" : "No such member found."},status=status.HTTP_400_BAD_REQUEST)
         if member in board.admins.all():
             board.admins.remove(member)
             mail_body = f"You are no longer the admin of board {board.name}."
@@ -360,10 +352,15 @@ class EditListView(APIView):
         if 'board' in data:
             try:
                 board = request.user.profile.member_in_boards.get(id=data['board'])
+                data['board'] = board
             except:
                 raise Http404
+        if board.team != None:
+            if request.profile.user not in board.admins.all():
+                return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.ListSerializer(list)
         serializer.update(instance=list,validated_data=data)
+        mail_body = f"{request.user.profile.name} edited the list {list.name} in the board {board.name}."
         if 'archived' in data:
             if data['archive'] == True:
                 mail_body = f"{request.user.profile.name} archived the list {list.name} in the board {board.name}."
@@ -383,8 +380,10 @@ class WatchUnwatchList(APIView):
             list = models.List.objects.get(id=list_id)
         except:
             raise Http404
-        if request.user.profile not in list.board.members.all():
-            raise Http404
+        if not is_allowed_to_watch_or_star(request,list.board):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        if request.user.profile in list.board.watched_by.all():
+            return Response({"detail": "You are already watching board so no need to watch list."},status=status.HTTP_400_BAD_REQUEST)
         if request.user.profile in list.watched_by.all():
             list.watched_by.remove(request.user.profile)
             return Response("watching list")
@@ -398,8 +397,12 @@ class WatchUnwatchCard(APIView):
             card = models.Card.objects.get(id=card_id)
         except:
             raise Http404
-        if request.user.profile not in card.list.board.members.all():
-            raise Http404
+        if not is_allowed_to_watch_or_star(request,card.list.board):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        if request.user.profile in card.list.board.watched_by.all():
+            return Response({"detail": "You are already watching board so no need to watch card."},status=status.HTTP_400_BAD_REQUEST)
+        if request.user.profile in card.list.watched_by.all():
+            return Response({"detail": "You are already watching the list so no need to watch card."},status=status.HTTP_400_BAD_REQUEST)
         if request.user.profile in card.watched_by.all():
             card.watched_by.remove(request.user.profile)
             return Response("watching card")
@@ -421,6 +424,7 @@ class CreateCardView(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
         data["list"] = list.id
         data['members'] = None
+        data['index'] = list.cards.count()
         serializer = serializers.CardSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -453,8 +457,27 @@ class EditCardView(APIView):
                 return Response(status=status.HTTP_403_FORBIDDEN)
             if list not in card.list.board.lists.all():
                 return Response({"detail" : "Can't move card outside the board"},status=status.HTTP_403_FORBIDDEN)
+            if 'index' in data:
+                if data['index'] > list.cards.count()+1 or data['index']<0:
+                    return Reponse({"detail": "Index can't hold this value"},status=status.HTTP_400_BAD_REQUEST)
+                list.cards.filter(index__gte=data['index']).update(index=F('index')+1)
+                card.list.cards.filter(index_gt=card.index).update(index=F('index')-1)
+            mail_body = f"{request.user.profile.name} moved card {card.name} from list {card.list.name} to list {list.name}."
+        else:
+            if 'index' in data:
+                if data['index'] > card.list.cards.count()+1 or data['index']<0:
+                    return Reponse({"detail": "Index can't hold this value"},status=status.HTTP_400_BAD_REQUEST)
+                if card.index > data['index']:
+                    card.list.cards.filter(index__gte=data['index'],index__lt=card.index).update(index=F('index')+1)
+                else:
+                    card.list.cards.filter(index__gt=card.index,index__lte=data['index']).update(index=F('index')-1)
+            mail_body = f"{request.user.profile.name} edited the card {card.name} in list {card.list.name} in board {card.list.board.name}."
+        send_email_to_object_watchers(card.list.board,mail_body,f"{card.list.board.name}(Board)")
+        send_email_to_object_watchers(card.list,mail_body,f"{card.list.name}(List)")
+        send_email_to_object_watchers(card,mail_body,f"{card.name}(Card)")
         serializer = serializers.CardSerializer(card)
         serializer.update(instance=card,validated_data=data)
+
         return Response({"detail": "card edited successfully"},status=status.HTTP_200_OK)
 
 class CreateChecklistView(APIView):
@@ -573,19 +596,19 @@ class CommentView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data,status=status.HTTP_201_CREATED)
-    def is_allowed(self,request,board):
-        if board.preference.permission_level == models.Preference.permission.public or request.user.profile in board.members.all():
-            return True
-        if board.preference.permission_level == models.Preference.permission.team_members:
-            if request.user.profile in board.team.members.all():
-                return True
-            return False
-        return False
+    # def is_allowed(self,request,board):
+    #     if board.preference.permission_level == models.Preference.permission.public or request.user.profile in board.members.all():
+    #         return True
+    #     if board.preference.permission_level == models.Preference.permission.team_members:
+    #         if request.user.profile in board.team.members.all():
+    #             return True
+    #         return False
+    #     return False
 
     def get(self,request,card_id):
         card = self.get_card(card_id)
         board = card.list.board
-        if not self.is_allowed(request,board):
+        if not is_allowed_to_watch_or_star(request,board):
             return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.CommentSerializer(card.comments,many=True,context={'request':request})
         return Response(serializer.data)

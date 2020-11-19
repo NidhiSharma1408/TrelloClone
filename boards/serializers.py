@@ -68,7 +68,11 @@ class CardSerializer(serializers.ModelSerializer):
         response['attachment_files'] = AttachedFileSerializer(instance.attached_files,many=True,context={'request' : self.context.get('request')}).data
         response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request' : self.context.get('request')}).data
-        response['votes'] = UserProfileSerializer(instance.voted_by,many=True,context={'request' : self.context.get('request')}).data        
+        if instance.voting_visible:
+            response['votes'] = UserProfileSerializer(instance.voted_by,many=True,context={'request' : self.context.get('request')}).data        
+        else:
+            response['votes'] = None
+        response['no_of_votes']=intance.voted_by.count()
         response['label'] = LabelSerializer(instance.label,many=True).data
         return response
 
@@ -86,6 +90,18 @@ class ListSerializer(serializers.ModelSerializer):
         response['cards'] = CardSerializer(instance.cards,many=True,context={'request' : self.context.get('request')}).data
         return response
 
+class BoardListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Board
+        fields = ['id','name','desc','is_closed']
+    def to_representation(self,instance):
+        response = super().to_representation(instance)
+        if self.context.get('request').user.profile.id in instance.starred_by.all():
+            response['starred'] = True
+        else:
+            response['starred'] = False
+        return response
+
 class BoardSerializer(serializers.ModelSerializer):
     preference = PreferenceSerializer(required=True)
     class Meta:
@@ -101,9 +117,9 @@ class BoardSerializer(serializers.ModelSerializer):
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request':self.context.get('request')}).data
         response['preference'] = PreferenceSerializer(instance.preference).data
         if self.context.get('request').user.profile.id in instance.starred_by.all():
-            response['stared'] = True
+            response['starred'] = True
         else:
-            response['stared'] = False
+            response['starred'] = False
         if self.context.get('request').user.profile.id in instance.watched_by.all():
             response['watching'] = True
         else:
@@ -124,6 +140,37 @@ class BoardSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         if 'preference' in validated_data:
             pref_data = validated_data.pop('preference')
+            if "permission_level" in pref_data:
+                if pref_data['permission_level'] == 3:
+                    for user in instance.watched_by.all():
+                        if not (user in instance.members.all()):
+                            instance.watched_by.remove(user)
+                    for user in instance.starred_by.all():
+                        if not (user in instance.members.all()):
+                            instance.starred_by.remove(user)
+                    for list in instance.lists.all():
+                        for user in list.watched_by.all():
+                            if not (user in instance.members.all()):
+                                list.watched_by.remove(user)
+                        for card in list.cards.all():
+                            for user in card.watched_by.all():
+                                if not (user in instance.members.all()):
+                                    card.watched_by.remove(user)
+                elif pref_data['permission_level'] == 4:
+                    for user in instance.watched_by.all():
+                        if not (user in instance.members.all()) and not (user in instance.team.members.all()):
+                            instance.watched_by.remove(user)
+                    for user in instance.starred_by.all():
+                        if not (user in instance.members.all()) and not (user in instance.team.members.all()):
+                            instance.starred_by.remove(user)
+                    for list in instance.lists.all():
+                        for user in list.watched_by.all():
+                            if not (user in instance.members.all()) and not (user in instance.team.members.all()):
+                                list.watched_by.remove(user)
+                        for card in list.cards.all():
+                            for user in card.watched_by.all():
+                                if not (user in instance.members.all()) and not (user in instance.team.members.all()):
+                                    card.watched_by.remove(user)
             PreferenceSerializer(instance.preference).update(instance=instance.preference,validated_data=pref_data)
         instance = super().update(instance, validated_data)
         return instance
