@@ -27,4 +27,8 @@ urlpatterns = [
     path('cards/<int:card_id>/vote/',views.VoteCardView.as_view()),
     path('cards/<int:card_id>/label/',views.CreateLabelView.as_view()),
     path('cards/<int:card_id>/members/',views.EditMembersInCard.as_view()),
+    path('cards/<int:card_id>/attach/file/',views.AttachFileView.as_view()),
+    path('cards/<int:card_id>/attach/link/',views.AttachLinkView.as_view()),
+    path('attach/link/<int:id>/',views.EditDeleteAttachedLinkView.as_view()),
+    path('attach/file/<int:id>/',views.EditDeleteAttachedFileView.as_view()),
 ]

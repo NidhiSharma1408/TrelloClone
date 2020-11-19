@@ -420,7 +420,7 @@ class CreateCardView(APIView):
             raise Http404
     def get(self, request,list_id):
         list=self.get_list(request,list_id)
-        if request.user.profile not in list.board.members.all():
+        if not (request.user.profile in list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.ListSerializer(list,context={'request':request})
         return Response(serializer.data)
@@ -428,7 +428,7 @@ class CreateCardView(APIView):
     def post(self, request,list_id):
         data = request.data
         list=self.get_list(request,list_id)
-        if request.user.profile not in list.board.members.all():
+        if not (request.user.profile in list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         data["list"] = list.id
         data['members'] = None
@@ -452,7 +452,7 @@ class EditCardView(APIView):
     def put(self,request,card_id):
         data = request.data
         card = self.get_card(card_id)
-        if request.user.profile not in card.list.board.members.all():
+        if not (request.user.profile in card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         if 'list' in data:
             try:
@@ -460,10 +460,10 @@ class EditCardView(APIView):
                 data['list'] = list
             except:
                 raise Http404
-            if request.user.profile not in list.board.members.all():
+            if not (request.user.profile in list.board.members.all()):
                 return Response(status=status.HTTP_403_FORBIDDEN)
             mail_body = f"{request.user.profile.name} edited the card {card.name} in list {card.list.name} in board {card.list.board.name}."
-            if list not in card.list.board.lists.all():
+            if not (list in card.list.board.lists.all()):
                 return Response({"detail" : "Can't move card outside the board"},status=status.HTTP_403_FORBIDDEN)
             if list == card.list:
                 if 'index' in data:
@@ -497,7 +497,7 @@ class CreateChecklistView(APIView):
     def post(self,request,card_id):
         data = request.data
         card = self.get_card(card_id)
-        if request.user.profile not in card.list.board.members.all():
+        if not (request.user.profile in card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         data['card'] =card.id
         serializer = serializers.ChecklistSerializer(data=data)
@@ -513,13 +513,13 @@ class EditChecklistView(APIView):
             raise Http404
     def delete(self,request,checklist_id):
         checklist=self.get_checklist(checklist_id)
-        if request.user.profile not in checklist.card.list.board.members.all():
+        if not (request.user.profile in checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         checklist.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     def put(self,request,checklist_id):
         checklist=self.get_checklist(checklist_id)
-        if request.user.profile not in checklist.card.list.board.members.all():
+        if not (request.user.profile in checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.ChecklistSerializer(checklist)
         data=request.data
@@ -534,7 +534,7 @@ class CreateTaskView(APIView):
             raise Http404
     def get(self,request,checklist_id):
         checklist = self.get_checklist(checklist_id)
-        if request.user.profile not in checklist.card.list.board.members.all():
+        if not (request.user.profile in checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.ChecklistSerializer(checklist,context={"request":request})
         return Response(serializer.data)
@@ -542,7 +542,7 @@ class CreateTaskView(APIView):
     def post(self,request,checklist_id):
         data=request.data
         checklist=self.get_checklist(checklist_id)
-        if request.user.profile not in checklist.card.list.board.members.all():
+        if not (request.user.profile in checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         data['checklist'] = checklist.id
         serializer = serializers.TaskSerializer(data=data)
@@ -558,14 +558,14 @@ class TaskActionsView(APIView):
             raise Http404
     def get(self,request,task_id):
         task = self.get_task(task_id)
-        if request.user.profile not in task.checklist.card.list.board.members.all():
+        if not (request.user.profile in task.checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.TaskSerializer(task,context={"request":request})
         return Response(serializer.data)
 
     def patch(self,request,task_id):
         task = self.get_task(task_id)
-        if request.user.profile not in task.checklist.card.list.board.members.all():
+        if not (request.user.profile in task.checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         if task.completed:
             task.completed = False
@@ -576,7 +576,7 @@ class TaskActionsView(APIView):
 
     def put(self,request,task_id):
         task=self.get_task(task_id)
-        if request.user.profile not in task.checklist.card.list.board.members.all():
+        if not (request.user.profile in task.checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.TaskSerializer(task)
         data=request.data
@@ -585,7 +585,7 @@ class TaskActionsView(APIView):
 
     def delete(self,request,task_id):
         task = self.get_task(task_id)
-        if request.user.profile not in task.checklist.card.list.board.members.all():
+        if not (request.user.profile in task.checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -602,14 +602,14 @@ class CommentView(APIView):
         if board.preference.pref_comment == models.Preference.comments.disabled:
             return Response(status=status.HTTP_403_FORBIDDEN)
         if board.preference.pref_comment == models.Preference.comments.admins:
-            if request.user.profile not in board.admins.all():
+            if not (request.user.profile in board.admins.all()):
                 return Response(status=status.HTTP_403_FORBIDDEN)
         if board.preference.pref_comment == models.Preference.comments.members:
-            if request.user.profile not in board.members.all():
+            if not (request.user.profile in board.members.all()):
                 return Response(status=status.HTTP_403_FORBIDDEN)
         if board.preference.pref_comment == models.Preference.comments.team_members:
             if board.team:
-                if request.user.profile not in board.team.members.all():
+                if not (request.user.profile in board.team.members.all()):
                     return Response(status=status.HTTP_403_FORBIDDEN)
         data = request.data
         data['card'] = card.id
@@ -647,14 +647,14 @@ class VoteCardView(APIView):
         if board.preference.pref_voting == models.Preference.voting.disabled:
                 return Response(status=status.HTTP_403_FORBIDDEN)
         if board.preference.pref_voting == models.Preference.voting.admins:
-            if request.user.profile not in board.admins.all():
+            if not (request.user.profile in board.admins.all()):
                 return Response(status=status.HTTP_403_FORBIDDEN)
         if board.preference.pref_voting == models.Preference.voting.members:
-            if request.user.profile not in board.members.all():
+            if not (request.user.profile in board.members.all()):
                 return Response(status=status.HTTP_403_FORBIDDEN)
         if board.preference.pref_voting == models.Preference.voting.team_members:
             if board.team:
-                if request.user.profile not in board.team.members.all():
+                if not (request.user.profile in board.team.members.all()):
                     return Response(status=status.HTTP_403_FORBIDDEN)
         if request.user.profile in card.voted_by.all():
             card.voted_by.remove(request.user.profile)
@@ -672,7 +672,7 @@ class CreateLabelView(APIView):
             raise Http404
     def post(self,request,card_id):
         card = self.get_card(card_id)
-        if request.user.profile not in card.list.board.members.all():
+        if not (request.user.profile in card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         data = request.data
         data['card'] = card.id
@@ -689,9 +689,8 @@ class EditMembersInCard(APIView):
             raise Http404
     def post(self,request,card_id):
         card = self.get_card(card_id)
-        print(card)
         members = request.data['members']
-        if request.user.profile not in card.list.board.members.all():
+        if not (request.user.profile in card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         for member in members:
             try:
@@ -707,7 +706,7 @@ class EditMembersInCard(APIView):
     def put(self,request,card_id):
         card = self.get_card(card_id)
         members = request.data['members']
-        if request.user.profile not in card.list.board.members.all():
+        if not (request.user.profile in card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         for member in members:
             try:
@@ -720,3 +719,79 @@ class EditMembersInCard(APIView):
                 mail_subject = f'You were removed from a card'
                 send_email_to(member,mail_body,mail_subject) #email notification
         return Response({"detail":"successfully removed members from card."})
+
+class AttachLinkView(APIView):
+    def get_card(self,card_id):
+        try:
+            return models.Card.objects.get(id=card_id)
+        except:
+            raise Http404
+    def post(self,request,card_id):
+        card = self.get_card(card_id)
+        if not (request.user.profile in card.list.board.members.all()):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        attachment = request.data
+        attachment['card'] = card.id
+        serializer = serializers.AttachedLinkSerializer(data=attachment)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data,status=status.HTTP_201_CREATED)
+
+class AttachFileView(APIView):
+    def get_card(self,card_id):
+        try:
+            return models.Card.objects.get(id=card_id)
+        except:
+            raise Http404
+    def post(self,request,card_id):
+        card = self.get_card(card_id)
+        if not (request.user.profile in card.list.board.members.all()):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        attachment = request.data
+        attachment['card'] = card.id
+        serializer = serializers.AttachedFileSerializer(data=attachment,context={'request':request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data,status=status.HTTP_201_CREATED)
+
+class EditDeleteAttachedLinkView(APIView):
+    def get_attachment(self,id):
+        try:
+            return models.Attached_link.objects.get(id=id)
+        except:
+            raise Http404
+    def put(self,request,id):
+        attachment = self.get_attachment(id)
+        if not (request.user.profile in attachment.card.list.board.members.all()):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = serializers.AttachedLinkSerializer(attachment)
+        data=request.data
+        serializer.update(instance=attachment,validated_data=data)
+        return Response({"detail":"successful"})
+    def delete(self,request,id):
+        attachment = self.get_attachment(id)
+        if not (request.user.profile in attachment.card.list.board.members.all()):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        attachment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class EditDeleteAttachedFileView(APIView):
+    def get_attachment(self,id):
+        try:
+            return models.Attached_file.objects.get(id=id)
+        except:
+            raise Http404
+    def put(self,request,id):
+        attachment = self.get_attachment(id)
+        if not (request.user.profile in attachment.card.list.board.members.all()):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = serializers.AttachedFileSerializer(attachment)
+        data=request.data
+        serializer.update(instance=attachment,validated_data=data)
+        return Response({"detail":"successful"})
+    def delete(self,request,id):
+        attachment = self.get_attachment(id)
+        if not (request.user.profile in attachment.card.list.board.members.all()):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        attachment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

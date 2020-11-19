@@ -51,7 +51,10 @@ class AttachedFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Attached_file
         fields ='__all__'
-
+    def to_representation(self,instance):
+        response = super().to_representation(instance)
+        response['file'] = 'http://' + self.context["request"].META['HTTP_HOST'] + response['file']
+        return response
 class AttachedLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Attached_link
