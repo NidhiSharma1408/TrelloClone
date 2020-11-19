@@ -96,7 +96,7 @@ class BoardListSerializer(serializers.ModelSerializer):
         fields = ['id','name','desc','is_closed']
     def to_representation(self,instance):
         response = super().to_representation(instance)
-        if self.context.get('request').user.profile.id in instance.starred_by.all():
+        if self.context.get('request').user.profile in instance.starred_by.all():
             response['starred'] = True
         else:
             response['starred'] = False
@@ -116,11 +116,11 @@ class BoardSerializer(serializers.ModelSerializer):
         response['admins'] = UserProfileSerializer(instance.admins,many=True,context={'request':self.context.get('request')}).data
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request':self.context.get('request')}).data
         response['preference'] = PreferenceSerializer(instance.preference).data
-        if self.context.get('request').user.profile.id in instance.starred_by.all():
+        if self.context.get('request').user.profile in instance.starred_by.all():
             response['starred'] = True
         else:
             response['starred'] = False
-        if self.context.get('request').user.profile.id in instance.watched_by.all():
+        if self.context.get('request').user.profile in instance.watched_by.all():
             response['watching'] = True
         else:
             response['watching'] = False
