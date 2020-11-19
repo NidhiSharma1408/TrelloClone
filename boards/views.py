@@ -342,7 +342,7 @@ class CreateListView(APIView):
         return Response(serializer.data,status=status.HTTP_201_CREATED)       
 
 class EditListView(APIView):
-    def put(self,request,board_id,list_id):
+    def put(self,request,list_id):
         try:
             list = models.List.objects.get(id=list_id)
         except:
@@ -356,21 +356,21 @@ class EditListView(APIView):
                 data['board'] = board
             except:
                 raise Http404
-        if board.team != None:
-            if request.profile.user not in board.admins.all():
-                return Response(status=status.HTTP_403_FORBIDDEN)
+            if board.team != None:
+                if request.profile.user not in board.admins.all():
+                    return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.ListSerializer(list)
         serializer.update(instance=list,validated_data=data)
-        mail_body = f"{request.user.profile.name} edited the list {list.name} in the board {board.name}."
+        mail_body = f"{request.user.profile.name} edited the list {list.name} in the board {list.board.name}."
         if 'archived' in data:
             if data['archive'] == True:
-                mail_body = f"{request.user.profile.name} archived the list {list.name} in the board {board.name}."
+                mail_body = f"{request.user.profile.name} archived the list {list.name} in the board {list.board.name}."
             else:
-                mail_body = f"{request.user.profile.name} unarchived the list {list.name} in the board {board.name}."
+                mail_body = f"{request.user.profile.name} unarchived the list {list.name} in the board {list.board.name}."
         elif 'board' in data:
             mail_body = f"{request.user.profile.name} moved the list {list.name} to the board {list.board.name}."
-        mail_subject = f"{board.name}(Board)"
-        send_email_to_object_watchers(board,mail_body,mail_subject)
+        mail_subject = f"{list.board.name}(Board)"
+        send_email_to_object_watchers(list.board,mail_body,mail_subject)
         mail_subject = f"{list.name}(List)"
         send_email_to_object_watchers(list,mail_body,mail_subject)
         return Response({"detail": "list edited successfully"},status=status.HTTP_200_OK)
@@ -418,6 +418,13 @@ class CreateCardView(APIView):
             return models.List.objects.get(id=list_id)
         except:
             raise Http404
+    def get(self, request,list_id):
+        list=self.get_list(request,list_id)
+        if request.user.profile not in list.board.members.all():
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = serializers.ListSerializer(list,context={'request':request})
+        return Response(serializer.data)
+
     def post(self, request,list_id):
         data = request.data
         list=self.get_list(request,list_id)
@@ -455,23 +462,24 @@ class EditCardView(APIView):
                 raise Http404
             if request.user.profile not in list.board.members.all():
                 return Response(status=status.HTTP_403_FORBIDDEN)
+            mail_body = f"{request.user.profile.name} edited the card {card.name} in list {card.list.name} in board {card.list.board.name}."
             if list not in card.list.board.lists.all():
                 return Response({"detail" : "Can't move card outside the board"},status=status.HTTP_403_FORBIDDEN)
-            if 'index' in data:
-                if data['index'] > list.cards.count()+1 or data['index']<0:
-                    return Reponse({"detail": "Index can't hold this value"},status=status.HTTP_400_BAD_REQUEST)
-                list.cards.filter(index__gte=data['index']).update(index=F('index')+1)
-                card.list.cards.filter(index_gt=card.index).update(index=F('index')-1)
-            mail_body = f"{request.user.profile.name} moved card {card.name} from list {card.list.name} to list {list.name}."
-        else:
-            if 'index' in data:
-                if data['index'] > card.list.cards.count()+1 or data['index']<0:
-                    return Reponse({"detail": "Index can't hold this value"},status=status.HTTP_400_BAD_REQUEST)
-                if card.index > data['index']:
-                    card.list.cards.filter(index__gte=data['index'],index__lt=card.index).update(index=F('index')+1)
-                else:
-                    card.list.cards.filter(index__gt=card.index,index__lte=data['index']).update(index=F('index')-1)
-            mail_body = f"{request.user.profile.name} edited the card {card.name} in list {card.list.name} in board {card.list.board.name}."
+            if list == card.list:
+                if 'index' in data:
+                    if data['index'] > card.list.cards.count()+1 or data['index']<0:
+                        return Reponse({"detail": "Index can't hold this value"},status=status.HTTP_400_BAD_REQUEST)
+                    if card.index > data['index']:
+                        card.list.cards.filter(index__gte=data['index'],index__lt=card.index).update(index=F('index')+1)
+                    else:
+                        card.list.cards.filter(index__gt=card.index,index__lte=data['index']).update(index=F('index')-1)
+            else:
+                if 'index' in data:
+                    if data['index'] > list.cards.count()+1 or data['index']<0:
+                        return Reponse({"detail": "Index can't hold this value"},status=status.HTTP_400_BAD_REQUEST)
+                    list.cards.filter(index__gte=data['index']).update(index=F('index')+1)
+                    card.list.cards.filter(index_gt=card.index).update(index=F('index')-1)
+                    mail_body = f"{request.user.profile.name} moved card {card.name} from list {card.list.name} to list {list.name}."
         send_email_to_object_watchers(card.list.board,mail_body,f"{card.list.board.name}(Board)")
         send_email_to_object_watchers(card.list,mail_body,f"{card.list.name}(List)")
         send_email_to_object_watchers(card,mail_body,f"{card.name}(Card)")
@@ -524,6 +532,13 @@ class CreateTaskView(APIView):
             return models.Checklist.objects.get(id=checklist_id)
         except:
             raise Http404
+    def get(self,request,checklist_id):
+        checklist = self.get_checklist(checklist_id)
+        if request.user.profile not in checklist.card.list.board.members.all():
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = serializers.ChecklistSerializer(checklist,context={"request":request})
+        return Response(serializer.data)
+
     def post(self,request,checklist_id):
         data=request.data
         checklist=self.get_checklist(checklist_id)
@@ -541,6 +556,13 @@ class TaskActionsView(APIView):
             return models.Task.objects.get(id=task_id)
         except:
             raise Http404
+    def get(self,request,task_id):
+        task = self.get_task(task_id)
+        if request.user.profile not in task.checklist.card.list.board.members.all():
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = serializers.TaskSerializer(task,context={"request":request})
+        return Response(serializer.data)
+
     def patch(self,request,task_id):
         task = self.get_task(task_id)
         if request.user.profile not in task.checklist.card.list.board.members.all():
@@ -659,12 +681,42 @@ class CreateLabelView(APIView):
         serializer.save()
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
-# class EditMembersInCard(APIView):
-#     try:
-#             return models.Card.objects.get(id=card_id)
-#         except:
-#             raise Http404
-#     def post(self,request,card_id):
-#         card = self.get_card(card_id)
-#         if request.user.profile not in card.list.board.members.all():
-#             return Response(status=status.HTTP_403_FORBIDDEN)
+class EditMembersInCard(APIView):
+    def get_card(self,card_id):
+        try:
+            return models.Card.objects.get(id=card_id)
+        except:
+            raise Http404
+    def post(self,request,card_id):
+        card = self.get_card(card_id)
+        print(card)
+        members = request.data['members']
+        if request.user.profile not in card.list.board.members.all():
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        for member in members:
+            try:
+                user = card.list.board.members.get(user__email=member)
+            except:
+                continue
+            card.members.add(user)
+            if user != request.user.profile:
+                mail_body = f"{request.user.profile.name} added you to card {card.name}."
+                mail_subject = f'You were added to a card'
+                send_email_to(member,mail_body,mail_subject) #email notification
+        return Response({"detail":"successfully added members in card."})
+    def put(self,request,card_id):
+        card = self.get_card(card_id)
+        members = request.data['members']
+        if request.user.profile not in card.list.board.members.all():
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        for member in members:
+            try:
+                user = card.members.get(user__email=member)
+            except:
+                continue
+            card.members.remove(user)
+            if user != request.user.profile:
+                mail_body = f"{request.user.profile.name} removed you from the card {card.name}."
+                mail_subject = f'You were removed from a card'
+                send_email_to(member,mail_body,mail_subject) #email notification
+        return Response({"detail":"successfully removed members from card."})

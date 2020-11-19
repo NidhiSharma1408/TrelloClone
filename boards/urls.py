@@ -26,4 +26,5 @@ urlpatterns = [
     path('cards/<int:card_id>/comments/',views.CommentView.as_view()),
     path('cards/<int:card_id>/vote/',views.VoteCardView.as_view()),
     path('cards/<int:card_id>/label/',views.CreateLabelView.as_view()),
+    path('cards/<int:card_id>/members/',views.EditMembersInCard.as_view()),
 ]
