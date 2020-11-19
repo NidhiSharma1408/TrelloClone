@@ -68,11 +68,11 @@ class CardSerializer(serializers.ModelSerializer):
         response['attachment_files'] = AttachedFileSerializer(instance.attached_files,many=True,context={'request' : self.context.get('request')}).data
         response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
         response['members'] = UserProfileSerializer(instance.members,many=True,context={'request' : self.context.get('request')}).data
-        if instance.voting_visible:
+        if instance.list.board.preference.voting_visible:
             response['votes'] = UserProfileSerializer(instance.voted_by,many=True,context={'request' : self.context.get('request')}).data        
         else:
             response['votes'] = None
-        response['no_of_votes']=intance.voted_by.count()
+        response['no_of_votes']=instance.voted_by.count()
         response['label'] = LabelSerializer(instance.label,many=True).data
         return response
 

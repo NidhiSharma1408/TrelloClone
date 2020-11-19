@@ -5,18 +5,26 @@ class IsMemberOrAllowed(BasePermission):
         """
         Return `True` if permission is granted, `False` otherwise.
         """
-        return bool(request.user and (request.user.profile in obj.members.all() or not obj.is_private))
+        if not request.user:
+            return False
+        return bool(request.user.profile in obj.members.all() or not obj.is_private)
 
 class IsMember(BasePermission):
     def has_object_permission(self,request,view,obj):
-        return bool(request.user and (request.user.profile in obj.members.all()))
+        if not request.user:
+            return False
+        return bool(request.user.profile in obj.members.all())
 
 class IsBoardAdmin(BasePermission):
     def has_object_permission(self,request,view,obj):
-        return bool(request.user and (request.user.profile in obj.admins.all()))
+        if not request.user:
+            return False
+        return bool(request.user.profile in obj.admins.all())
 
 class IsAllowedToView(BasePermission):
     def has_object_permission(self,request,view,obj):
+        if not request.user:
+            return False
         if obj.preference.permission_level == models.Preference.permission.public:
             return True
         elif obj.preference.permission_level == models.Preference.permission.team_members:
