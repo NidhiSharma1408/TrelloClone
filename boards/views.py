@@ -280,7 +280,7 @@ class EditMembersInBoard(APIView):
 class StarUnstarBoard(APIView):
     def put(self,request,id):
         try:
-            board = models.Boards.objects.get(id=id)
+            board = models.Board.objects.get(id=id)
         except:
             raise Http404
         if not is_allowed_to_watch_or_star(request,board):
@@ -295,7 +295,7 @@ class StarUnstarBoard(APIView):
 class WatchUnwatchBoard(APIView):
     def put(self,request,id):
         try:
-            board = models.Boards.objects.get(id=id)
+            board = models.Board.objects.get(id=id)
         except:
             raise Http404
         if not is_allowed_to_watch_or_star(request,board):
