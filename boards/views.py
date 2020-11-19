@@ -66,6 +66,7 @@ class TeamView(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
+        # models.Activity.objects.create(description=f"Create a team {data['name']}",user=request.user.profile)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         
     def retrieve(self, request, *args, **kwargs):
@@ -433,7 +434,6 @@ class CreateCardView(APIView):
         send_email_to_object_watchers(list.board,mail_body, mail_subject)
         mail_subject = f"{list.name}(List)"
         send_email_to_object_watchers(list,mail_body, mail_subject)
-        # yahan agar koi board ko bhi watch kr rha hoga aur list ko bhi watch kr rha hoga uspe do bar email jayegi. Iska ilaj sochna pdega"
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class EditCardView(APIView):
@@ -659,4 +659,12 @@ class CreateLabelView(APIView):
         serializer.save()
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
-    
+# class EditMembersInCard(APIView):
+#     try:
+#             return models.Card.objects.get(id=card_id)
+#         except:
+#             raise Http404
+#     def post(self,request,card_id):
+#         card = self.get_card(card_id)
+#         if request.user.profile not in card.list.board.members.all():
+#             return Response(status=status.HTTP_403_FORBIDDEN)
