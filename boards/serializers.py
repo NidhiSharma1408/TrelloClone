@@ -110,7 +110,7 @@ class BoardSerializer(serializers.ModelSerializer):
     preference = PreferenceSerializer(required=True)
     class Meta:
         model = models.Board
-        fields = ['id','name','desc','team','admins','is_closed','preference','members']
+        fields = ['id','name','desc','team','admins','is_closed','preference','members','slug']
 
     def to_representation(self,instance):
         response = super().to_representation(instance)

@@ -795,3 +795,24 @@ class EditDeleteAttachedFileView(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
         attachment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class EditDeleteLabelView(APIView):
+    def get_label(self,id):
+        try:
+            return models.Label.objects.get(id=id)
+        except:
+            raise Http404
+    def put(self,request,id):
+        label = self.get_label(id)
+        if not (request.user.profile in label.card.list.board.members.all()):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = serializers.LabelSerializer(label)
+        data=request.data
+        serializer.update(instance=label,validated_data=data)
+        return Response({"detail":"successful"})
+    def delete(self,request,id):
+        label = self.get_label(id)
+        if not (request.user.profile in label.card.list.board.members.all()):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        label.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

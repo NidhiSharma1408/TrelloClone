@@ -26,6 +26,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         if user.is_active:
             if user.check_password(password):
                 data = super(MyTokenObtainPairSerializer, self).validate(attrs)
+                data.update({'user_id' : self.user.id})
                 data.update({'id': self.user.profile.id})
                 data.update({'email': self.user.email})
                 data.update({'name' : self.user.profile.name})

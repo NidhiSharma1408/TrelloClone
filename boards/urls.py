@@ -31,4 +31,5 @@ urlpatterns = [
     path('cards/<int:card_id>/attach/link/',views.AttachLinkView.as_view()),
     path('attach/link/<int:id>/',views.EditDeleteAttachedLinkView.as_view()),
     path('attach/file/<int:id>/',views.EditDeleteAttachedFileView.as_view()),
+    path('labels/<int:id>/',views.EditDeleteLabelView.as_view())
 ]

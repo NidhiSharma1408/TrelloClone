@@ -2,8 +2,9 @@ from django.db import models
 from django.core.validators import MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 from userauth.models import UserProfile
-
-
+import string 
+from django.utils.text import slugify 
+from django.db.models.signals import pre_save
 class Team(models.Model):
     class Type(models.TextChoices):
         HumanResource = 'HR', _('Human Resorce')
@@ -29,7 +30,8 @@ class Team(models.Model):
     
 
 class Board(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=250)
+    slug = models.SlugField(max_length = 250, null = True, blank = True)
     desc = models.TextField(blank=True,null=True,verbose_name="description")
     team = models.ForeignKey(Team,on_delete=models.SET_NULL,null=True,related_name='boards')
     members = models.ManyToManyField(UserProfile,related_name="member_in_boards")
@@ -75,14 +77,14 @@ class Preference(models.Model):
 
 class List(models.Model):
     board = models.ForeignKey(Board,on_delete=models.CASCADE,related_name='lists')
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=250)
     watched_by = models.ManyToManyField(UserProfile,related_name='watching_lists')
     archived = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.id}->{self.name}->{self.board.id}->{self.board.name}"
 
 class Card(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=250)
     desc = models.TextField(blank=True,null=True)
     index = models.PositiveIntegerField(blank=False)
     members = models.ManyToManyField(UserProfile,related_name='member_in_card')
@@ -131,3 +133,21 @@ class Activity(models.Model):
     time_created = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(UserProfile,on_delete=models.DO_NOTHING,related_name='activity')
 
+def random_string_generator(size = 10, chars = string.ascii_lowercase + string.digits): 
+    return ''.join(random.choice(chars) for _ in range(size))  
+def unique_slug_generator(instance, new_slug = None): 
+    if new_slug is not None: 
+        slug = new_slug 
+    else: 
+        slug = slugify(instance.name) 
+    Klass = instance.__class__ 
+    qs_exists = Klass.objects.filter(slug = slug).exists() 
+    if qs_exists: 
+        new_slug = "{slug}-{randstr}".format( 
+            slug = slug, randstr = random_string_generator(size = 4)) 
+        return unique_slug_generator(instance, new_slug = new_slug) 
+    return slug 
+def pre_save_receiver(sender, instance, *args, **kwargs): 
+   if not instance.slug: 
+       instance.slug = unique_slug_generator(instance) 
+pre_save.connect(pre_save_receiver, sender =Board) 
