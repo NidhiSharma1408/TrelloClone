@@ -182,3 +182,6 @@ try:
     from .local_settings import *
 except:
     pass
+
+# client id:  825210011620-mtu0ein3sll2tldsilqmbqa7qb8umpc9.apps.googleusercontent.com
+# client secret: PTutQJG-MtZf0-xspKn6AAqU

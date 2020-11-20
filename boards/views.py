@@ -179,7 +179,7 @@ class BoardView(ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         all_boards = request.user.profile.member_in_boards.all()
-        personal_boards = request.user.profile.member_in_boards.filter(team=None)
+        personal_boards = request.user.profile.member_in_boards.filter(Q(team=None) | ~Q(team__members=request.user.profile)) 
         starred_boards = request.user.profile.starred_boards.all()
         team_boards_id = request.user.profile.teams.all().values_list('boards',flat=True)
         team_boards = models.Board.objects.filter(id__in=team_boards_id,members=request.user.profile)
@@ -454,6 +454,7 @@ class EditCardView(APIView):
         card = self.get_card(card_id)
         if not (request.user.profile in card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
+        mail_body = f"{request.user.profile.name} edited the card {card.name} in list {card.list.name} in board {card.list.board.name}."
         if 'list' in data:
             try:
                 list = models.List.objects.get(id=data['list'])
@@ -462,7 +463,6 @@ class EditCardView(APIView):
                 raise Http404
             if not (request.user.profile in list.board.members.all()):
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            mail_body = f"{request.user.profile.name} edited the card {card.name} in list {card.list.name} in board {card.list.board.name}."
             if not (list in card.list.board.lists.all()):
                 return Response({"detail" : "Can't move card outside the board"},status=status.HTTP_403_FORBIDDEN)
             if list == card.list:
@@ -485,7 +485,6 @@ class EditCardView(APIView):
         send_email_to_object_watchers(card,mail_body,f"{card.name}(Card)")
         serializer = serializers.CardSerializer(card)
         serializer.update(instance=card,validated_data=data)
-
         return Response({"detail": "card edited successfully"},status=status.HTTP_200_OK)
 
 class CreateChecklistView(APIView):
