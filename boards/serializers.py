@@ -96,7 +96,7 @@ class ListSerializer(serializers.ModelSerializer):
 class BoardListSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Board
-        fields = ['id','name','desc','is_closed']
+        fields = ['id','name','slug','desc','is_closed']
     def to_representation(self,instance):
         response = super().to_representation(instance)
         user = self.context.get('request').user.profile

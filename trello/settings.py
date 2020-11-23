@@ -30,9 +30,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_auth',
     'rest_framework.authtoken',
+    'channels',
     'userauth',   
     'boards',
     'corsheaders',
+    'chat'
     # 'allauth',
     # 'allauth.account',
     # 'allauth.socialaccount',
@@ -82,7 +84,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'trello.wsgi.application'
-
+ASGI_APPLICATION = 'trello.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
@@ -177,11 +179,20 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = os.environ.get('EMAIL')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PWD')
 EMAIL_USE_TLS=True
+# client id:  825210011620-mtu0ein3sll2tldsilqmbqa7qb8umpc9.apps.googleusercontent.com
+# client secret: PTutQJG-MtZf0-xspKn6AAqU
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+
 django_heroku.settings(locals())
 try:
     from .local_settings import *
 except:
     pass
-
-# client id:  825210011620-mtu0ein3sll2tldsilqmbqa7qb8umpc9.apps.googleusercontent.com
-# client secret: PTutQJG-MtZf0-xspKn6AAqU
