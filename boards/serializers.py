@@ -1,17 +1,7 @@
 from rest_framework import serializers
 from userauth.serializers import UserProfileSerializer
 from . import models
-
-class TeamSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Team
-        fields = '__all__'
-    def to_representation(self,instance):
-        response = super().to_representation(instance)
-        response['Type_of_team'] = models.Team.Type(instance.Type_of_team).label
-        response['members'] = UserProfileSerializer(instance.members,many=True,context={'request':self.context.get('request')}).data
-        return response
-        
+from lists.serializers import ListSerializer     
 class PreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Preference
@@ -24,74 +14,6 @@ class PreferenceSerializer(serializers.ModelSerializer):
         response['permission_level'] = models.Preference.permission(instance.permission_level).label
         return response
 
-class TaskSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Task
-        fields = '__all__'
-
-class CommentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Comment
-        fields = '__all__'
-    def to_representation(self,instance):
-        response = super().to_representation(instance)
-        response['user'] = UserProfileSerializer(instance.user,context={'request':self.context.get('request')}).data
-        return response
-
-class ChecklistSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Checklist
-        fields = '__all__'
-    def to_representation(self,instance):
-        response = super().to_representation(instance)
-        response['tasks'] = TaskSerializer(instance.tasks,many=True).data
-        return response
-
-class AttachedFileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Attached_file
-        fields ='__all__'
-    def to_representation(self,instance):
-        response = super().to_representation(instance)
-        response['file'] = 'http://' + self.context["request"].META['HTTP_HOST'] + response['file']
-        return response
-class AttachedLinkSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Attached_link
-        fields = '__all__'
-
-class CardSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Card
-        exclude = ['voted_by','watched_by','members']
-    def to_representation(self,instance):
-        response = super().to_representation(instance)
-        response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
-        response['attachment_links'] = AttachedLinkSerializer(instance.attached_links,many=True,context={'request' : self.context.get('request')}).data
-        response['attachment_files'] = AttachedFileSerializer(instance.attached_files,many=True,context={'request' : self.context.get('request')}).data
-        response['checklists'] = ChecklistSerializer(instance.checklists,many=True,context={'request' : self.context.get('request')}).data
-        response['members'] = UserProfileSerializer(instance.members,many=True,context={'request' : self.context.get('request')}).data
-        if instance.list.board.preference.voting_visible:
-            response['votes'] = UserProfileSerializer(instance.voted_by,many=True,context={'request' : self.context.get('request')}).data        
-        else:
-            response['votes'] = None
-        response['no_of_votes']=instance.voted_by.count()
-        response['label'] = LabelSerializer(instance.label,many=True).data
-        return response
-
-class LabelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Label
-        fields ='__all__'
-
-class ListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.List
-        exclude = ['watched_by']
-    def to_representation(self,instance):
-        response = super().to_representation(instance)
-        response['cards'] = CardSerializer(instance.cards,many=True,context={'request' : self.context.get('request')}).data
-        return response
 
 class BoardListSerializer(serializers.ModelSerializer):
     class Meta:

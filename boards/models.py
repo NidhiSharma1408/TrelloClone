@@ -1,33 +1,11 @@
 from django.db import models
 from django.core.validators import MaxValueValidator
-from django.utils.translation import gettext_lazy as _
 from userauth.models import UserProfile
-import string 
+from teams.models import Team
+import string,random
+from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify 
 from django.db.models.signals import pre_save
-class Team(models.Model):
-    class Type(models.TextChoices):
-        HumanResource = 'HR', _('Human Resorce')
-        Marketing = 'MT', _('Marketing')
-        Operations = 'OP', _('Operations')
-        Sales_CRM = 'SR', _('Sales CRM')
-        Education = 'ED', _('Education')
-        Small_Business = 'SB', _('Small Business')
-        Engineering_IT = 'EI', _('Engineering-IT')
-        Other = 'OT', _('Other')
-    Type_of_team = models.CharField(
-        max_length=2,
-        choices=Type.choices,
-        default=Type.Other,
-    )
-    desc = models.TextField(blank=True,null=True,verbose_name="description")
-    name = models.CharField(blank=False,max_length=50)
-    members = models.ManyToManyField(UserProfile,related_name="teams")
-    website = models.URLField(null=True,blank=True)
-    is_private = models.BooleanField(default=True)
-    def __str__(self):
-        return f"{self.id}-{self.name}"
-    
 
 class Board(models.Model):
     name = models.CharField(max_length=250)
@@ -75,58 +53,6 @@ class Preference(models.Model):
     def __str__(self):
         return f"{self.board.id}->{self.board.name}"
 
-class List(models.Model):
-    board = models.ForeignKey(Board,on_delete=models.CASCADE,related_name='lists')
-    name = models.CharField(max_length=250)
-    watched_by = models.ManyToManyField(UserProfile,related_name='watching_lists')
-    archived = models.BooleanField(default=False)
-    def __str__(self):
-        return f"{self.id}->{self.name}->{self.board.id}->{self.board.name}"
-
-class Card(models.Model):
-    name = models.CharField(max_length=250)
-    desc = models.TextField(blank=True,null=True)
-    index = models.PositiveIntegerField(blank=False)
-    members = models.ManyToManyField(UserProfile,related_name='member_in_card')
-    due_date = models.DateTimeField(null=True)
-    complete = models.BooleanField(default=False)
-    list = models.ForeignKey(List,on_delete=models.CASCADE,related_name='cards')
-    archived = models.BooleanField(default=False)
-    watched_by = models.ManyToManyField(UserProfile,related_name='watching_cards')
-    voted_by = models.ManyToManyField(UserProfile,related_name='voted_cards')
-    def __str__(self):
-        return f'{self.id}-{self.name}-{self.list.id}-{self.list.board.id}'
-    class Meta:
-        ordering = ['index','id']
-
-
-class Attached_file(models.Model):
-    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attached_files')
-    file = models.FileField(null=False)
-
-class Attached_link(models.Model):
-    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='attached_links')
-    link = models.URLField(blank=False,null=False)
-
-class Checklist(models.Model):
-    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='checklists')
-    name = models.CharField(default='Checklist',max_length=50)
-
-class Task(models.Model):
-    checklist = models.ForeignKey(Checklist,on_delete=models.CASCADE,related_name='tasks')
-    name = models.CharField(max_length=50,null=False)
-    completed = models.BooleanField(default=False)
-
-class Comment(models.Model):
-    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='comments')
-    text = models.TextField(blank=False)
-    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE,related_name='comments')
-    created_at = models.DateTimeField(auto_now=True)
-
-class Label(models.Model):
-    color = models.CharField(max_length=6)
-    name = models.CharField(max_length=30)
-    card = models.ForeignKey(Card,on_delete=models.CASCADE,related_name='label')
 
 class Activity(models.Model):
     description = models.TextField()

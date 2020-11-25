@@ -31,14 +31,14 @@ INSTALLED_APPS = [
     'rest_auth',
     'rest_framework.authtoken',
     'channels',
-    'userauth',   
+    'userauth', 
+    'teams',  
     'boards',
+    'lists',
+    'cards',
+    'checklists',
     'corsheaders',
     'chat'
-    # 'allauth',
-    # 'allauth.account',
-    # 'allauth.socialaccount',
-    # 'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
