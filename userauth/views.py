@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import User,UserProfile,OtpModel
 from .serializers import UserSerializer,MyTokenObtainPairSerializer, UserProfileSerializer
-from .permissions import IsAdminUser,IsLoggedInUserOrAdmin
+from .permissions import IsAdminUser,IsLoggedInUserOrAdmin,IsOwnerOrAdmin
 from rest_framework import filters
 
 
@@ -98,8 +98,10 @@ class UserViewSet(ModelViewSet):
         permission_classes = []
         if self.action == 'create':
             permission_classes = [AllowAny]
-        elif self.action == 'retrieve' or self.action == 'update' or self.action == 'partial_update':
-            permission_classes = [IsLoggedInUserOrAdmin]
+        elif self.action == 'retrieve':
+            permission_classes == [IsLoggedInUserOrAdmin]
+        elif self.action == 'update' or self.action == 'partial_update':
+            permission_classes = [IsOwnerOrAdmin]
         elif self.action == 'list' or self.action == 'destroy':
             permission_classes = [IsAuthenticatedOrReadOnly]
         return [permission() for permission in permission_classes]

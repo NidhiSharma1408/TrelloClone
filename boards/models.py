@@ -54,10 +54,6 @@ class Preference(models.Model):
         return f"{self.board.id}->{self.board.name}"
 
 
-class Activity(models.Model):
-    description = models.TextField()
-    time_created = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(UserProfile,on_delete=models.DO_NOTHING,related_name='activity')
 
 def random_string_generator(size = 10, chars = string.ascii_lowercase + string.digits): 
     return ''.join(random.choice(chars) for _ in range(size))  

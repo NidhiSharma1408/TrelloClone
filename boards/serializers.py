@@ -102,8 +102,3 @@ class BoardSerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         return instance
 
-class ActivitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Activity
-        fields = '__all__'
-    

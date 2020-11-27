@@ -169,8 +169,10 @@ class WatchUnwatchBoard(APIView):
             return Response({"detail":"not watching board"})
         else:
             board.watched_by.add(request.user.profile)
-            request.user.profile.watching_lists.remove(board.lists.all())
-            request.user.profile.watching_cards.remove(board.lists.all().values('cards'))
+            lists_to_remove = board.lists.filter(watched_by=request.user.profile)
+            cards_to_remove = request.user.profile.watching_cards.filter(list__board=board)
+            request.user.profile.watching_cards.remove(*cards_to_remove)
+            request.user.profile.watching_lists.remove(*lists_to_remove)
             return Response({"detail":'watching board'})
 
 class MakeAdminOrRemoveFromAdmins(APIView):

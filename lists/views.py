@@ -83,5 +83,6 @@ class WatchUnwatchList(APIView):
             return Response({'detail': "not watching list"})
         else:
             list_obj.watched_by.add(request.user.profile)
-            request.user.profile.watching_cards.remove(list_obj.cards.all().values_list('id',flat=True))
+            cards_to_remove = list_obj.cards.filter(watched_by=request.user.profile)
+            request.user.profile.watching_cards.remove(*cards_to_remove)
             return Response({'detail' : 'watching list'})
