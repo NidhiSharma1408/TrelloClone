@@ -26,22 +26,22 @@ class Preference(models.Model):
     class comments(models.IntegerChoices):
         disabled = 1,_("Disabled")
         admins = 2,_("Admins")
-        members = 3,_("Admin and Board Members")
-        team_members = 4,_("Admin, Board Members, Guests and team members")
-        public = 5,_("anyone")
+        members = 3,_("Members")
+        team_members = 4,_("team members")
+        public = 5,_("Public")
     class invitations(models.IntegerChoices):
-        admins = 1,_('Only admins can add and remove members from this board')
-        members =3,_('Only Members can add and remove members from this board')
+        admins = 1,_('Only admins')
+        members =3,_('Members')
     class permission(models.IntegerChoices):
-        members = 3,_("Admin and Board Members")
-        team_members = 4,_("Admin, Board Members, and team members")
-        public = 5,_("anyone")
+        members = 3,_("Private")
+        team_members = 4,_("Team")
+        public = 5,_("Public")
     class voting(models.IntegerChoices):
         disabled = 1,_("Disabled")
         admins = 2,_("Admins")
-        members = 3,_("Admin and Board Members")
-        team_members = 4,_("Admin, Board Members, Guests and team members")
-        public = 5,_("anyone")
+        members = 3,_("Members")
+        team_members = 4,_("team members")
+        public = 5,_("Public")
     self_join = models.BooleanField(default=True)
     card_cover = models.BooleanField(default=False)
     pref_comment = models.IntegerField(choices=comments.choices,default=comments.disabled)
@@ -55,7 +55,7 @@ class Preference(models.Model):
 
 
 
-def random_string_generator(size = 10, chars = string.ascii_lowercase + string.digits): 
+def random_string_generator(size = 10, chars = string.digits): 
     return ''.join(random.choice(chars) for _ in range(size))  
 def unique_slug_generator(instance, new_slug = None): 
     if new_slug is not None: 

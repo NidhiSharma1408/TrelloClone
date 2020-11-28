@@ -9,5 +9,7 @@ class Activity(models.Model):
     time_created = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(UserProfile,on_delete=models.DO_NOTHING,related_name='activity')
     board = models.ForeignKey(Board,on_delete=models.CASCADE,related_name="activity")
-    list = models.ForeignKey(List,on_delete=models.CASCADE,related_name="activity")
-    card = models.ForeignKey(Card,on_delete=models.CASCADE,realted_name="activity")
+    list = models.ForeignKey(List,null=True,on_delete=models.CASCADE,related_name="activity")
+    card = models.ForeignKey(Card,null=True,on_delete=models.CASCADE,related_name="activity")
+    def __str__(self):
+        return self.description

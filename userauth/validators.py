@@ -7,3 +7,4 @@ def validate_name(value):
         raise ValidationError("Can't contain special symbols and numbers.")
     if '[' in value or ']' in value:
         raise ValidationError("Can't contain special symbols and numbers.")
+

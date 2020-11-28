@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from .import models,serializers
+from activity.models import Activity
 # Create your views here.
 
 class CreateChecklistView(APIView):
@@ -27,6 +28,7 @@ class CreateChecklistView(APIView):
         serializer = serializers.ChecklistSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        Activity.objects.create(description=f"{request.user.profile.name} created {serializer.instance.name} in {card.name}.",user=request.user.profile,board=card.list.board,list=card.list,card=card)
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class EditChecklistView(APIView):
@@ -93,8 +95,10 @@ class TaskActionsView(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
         if task.completed:
             task.completed = False
+            Activity.objects.create(description=f"{request.user.profile.name} marked {task.name} as imcomplete in {card.name}.",user=request.user.profile,board=task.checklist.card.list.board,list=task.checklist.card.list,card=task.checklist.card)
         else:
             task.completed=True
+            Activity.objects.create(description=f"{request.user.profile.name} completed {task.name} in {card.name}.",user=request.user.profile,board=task.checklist.card.list.board,list=task.checklist.card.list,card=task.checklist.card)
         task.save()
         return Response(status=status.HTTP_200_OK)
 
@@ -111,5 +115,6 @@ class TaskActionsView(APIView):
         task = self.get_task(task_id)
         if not (request.user.profile in task.checklist.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
+        Activity.objects.create(description=f"{request.user.profile.name} deleted {task.name} in {card.name}.",user=request.user.profile,board=task.checklist.card.list.board,list=task.checklist.card.list,card=task.checklist.card)
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

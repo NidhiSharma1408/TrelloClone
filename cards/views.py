@@ -8,6 +8,7 @@ from trello.emailfunc import send_email_to_object_watchers,send_email_to
 from .import models,serializers
 from lists.models import List
 from boards.models import Preference
+from activity.models import Activity
 from boards.permissions import is_allowed_to_watch_or_star
 # Create your views here.
 
@@ -40,6 +41,7 @@ class CreateCardView(APIView):
         send_email_to_object_watchers(list.board,mail_body, mail_subject)
         mail_subject = f"{list.name}(List)"
         send_email_to_object_watchers(list,mail_body, mail_subject)
+        Activity.objects.create(description=f"{request.user.profile.name} created card {serializer.instance.name} in {list.name}.",user=request.user.profile,board=list.board,list=list)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class WatchUnwatchCard(APIView):
@@ -48,7 +50,7 @@ class WatchUnwatchCard(APIView):
             card = models.Card.objects.get(id=card_id)
         except:
             raise Http404
-        if not is_allowed_to_watch_or_star(request,card.list.board):
+        if not is_allowed_to_watch_or_star(request.user.profile,card.list.board):
             return Response(status=status.HTTP_403_FORBIDDEN)
         if request.user.profile in card.list.board.watched_by.all():
             return Response({"detail": "You are already watching board so no need to watch card."},status=status.HTTP_400_BAD_REQUEST)
@@ -75,12 +77,35 @@ class EditCardView(APIView):
         if not (request.user.profile in card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         mail_body = f"{request.user.profile.name} edited the card {card.name} in list {card.list.name} in board {card.list.board.name}."
+        if 'name' in data:
+            Activity.objects.create(description=f"{request.user.profile.name} renamed card {card.name} to {data['name']}.",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+            mail_body = f"{request.user.profile.name} renamed the card {card.name} to {data['name']} in list {card.list.name} in board {card.list.board.name}."
+        elif 'desc' in data:
+            Activity.objects.create(description=f"{request.user.profile.name} changed description of {card.name}.",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+            mail_body = f"{request.user.profile.name} changed description of {card.name} in list {card.list.name} in board {card.list.board.name}."
+        elif 'due_date' in data:
+            Activity.objects.create(description=f"{request.user.profile.name} changed due date of {card.name}.",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+            mail_body = f"{request.user.profile.name} changed due date of {card.name} in list {card.list.name} in board {card.list.board.name}."
+        elif 'complete' in data:
+            if data['complete']:
+                Activity.objects.create(description=f"{request.user.profile.name} marked as complete {card.name}.",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+                mail_body = f"{request.user.profile.name} marked as complete {card.name} in list {card.list.name} in board {card.list.board.name}."
+            else:
+                Activity.objects.create(description=f"{request.user.profile.name} marked as uncomplete {card.name}.",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+                mail_body = f"{request.user.profile.name} marked as uncomplete {card.name} in list {card.list.name} in board {card.list.board.name}."
+        elif 'archived' in data:
+            if data['archived']:
+                Activity.objects.create(description=f"{request.user.profile.name} archived {card.name}.",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+                mail_body = f"{request.user.profile.name} archived {card.name} in list {card.list.name} in board {card.list.board.name}."
+            else:
+                Activity.objects.create(description=f"{request.user.profile.name} unarchived {card.name}.",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+                mail_body = f"{request.user.profile.name} unarchived {card.name} in list {card.list.name} in board {card.list.board.name}."
         if 'list' in data:
             try:
                 list = List.objects.get(id=data['list'])
                 data['list'] = list
             except:
-                raise Http404
+                return Reponse({"detail": "Couldn't find given list."},status=status.HTTP_400_BAD_REQUEST)
             if not (request.user.profile in list.board.members.all()):
                 return Response(status=status.HTTP_403_FORBIDDEN)
             if not (list in card.list.board.lists.all()):
@@ -100,8 +125,9 @@ class EditCardView(APIView):
                     list.cards.filter(index__gte=data['index']).update(index=F('index')+1)
                     card.list.cards.filter(index_gt=card.index).update(index=F('index')-1)
                     mail_body = f"{request.user.profile.name} moved card {card.name} from list {card.list.name} to list {list.name}."
-        send_email_to_object_watchers(card.list.board,mail_body,f"{card.list.board.name}(Board)")
-        send_email_to_object_watchers(card.list,mail_body,f"{card.list.name}(List)")
+                    Activity.objects.create(description=f"{request.user.profile.name} moved {card.name} from {card.list.name} to list {list.name}.",user=request.user.profile,board=list.board,list=list,card=card)
+            send_email_to_object_watchers(card.list.board,mail_body,f"{card.list.board.name}(Board)")
+            send_email_to_object_watchers(card.list,mail_body,f"{card.list.name}(List)")
         send_email_to_object_watchers(card,mail_body,f"{card.name}(Card)")
         serializer = serializers.CardSerializer(card)
         serializer.update(instance=card,validated_data=data)
@@ -148,7 +174,7 @@ class CommentView(APIView):
     def get(self,request,card_id):
         card = self.get_card(card_id)
         board = card.list.board
-        if not is_allowed_to_watch_or_star(request,board):
+        if not is_allowed_to_watch_or_star(request.user.profile,board):
             return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = serializers.CommentSerializer(card.comments,many=True,context={'request':request})
         return Response(serializer.data)
@@ -176,10 +202,12 @@ class VoteCardView(APIView):
                     return Response(status=status.HTTP_403_FORBIDDEN)
         if request.user.profile in card.voted_by.all():
             card.voted_by.remove(request.user.profile)
-            return Response("voted card")
+            Activity.objects.create(description=f"{request.user.profile.name} unvoted card {card.name}",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+            return Response({"detail":"unvoted card"})
         else:
             card.voted_by.add(request.user.profile)
-            return Response('unvoted card')
+            Activity.objects.create(description=f"{request.user.profile.name} voted card {card.name}",user=request.user.profile,board=card.list.board,list=card.list,card=card)
+            return Response({"detail":'voted card'})
         
 
 class CreateLabelView(APIView):
@@ -215,11 +243,14 @@ class EditMembersInCard(APIView):
                 user = card.list.board.members.get(user__email=member)
             except:
                 continue
+            if user in card.members.all():
+                continue
             card.members.add(user)
             if user != request.user.profile:
                 mail_body = f"{request.user.profile.name} added you to card {card.name}."
                 mail_subject = f'You were added to a card'
                 send_email_to(member,mail_body,mail_subject) #email notification
+        Activity.objects.create(description=f"{user.name} joined card {card.name} in {card.list.name}",user=user,board=card.list.board,list=card.list,card=card)
         return Response({"detail":"successfully added members in card."})
     def put(self,request,card_id):
         card = self.get_card(card_id)
@@ -231,11 +262,14 @@ class EditMembersInCard(APIView):
                 user = card.members.get(user__email=member)
             except:
                 continue
+            if not (user in card.members.all()):
+                continue
             card.members.remove(user)
             if user != request.user.profile:
                 mail_body = f"{request.user.profile.name} removed you from the card {card.name}."
                 mail_subject = f'You were removed from a card'
                 send_email_to(member,mail_body,mail_subject) #email notification
+                Activity.objects.create(description=f"{user.name} left card {card.name} in {card.list.name}",user=user,board=card.list.board,list=card.list,card=card)
         return Response({"detail":"successfully removed members from card."})
 
 class AttachLinkView(APIView):
@@ -253,6 +287,7 @@ class AttachLinkView(APIView):
         serializer = serializers.AttachedLinkSerializer(data=attachment)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        Activity.objects.create(description=f"{request.user.profile.name} added attachment in card {card.name} in {card.list.name}",user=request.user.profile,board=card.list.board,list=card.list,card=card)
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class AttachFileView(APIView):
@@ -270,6 +305,7 @@ class AttachFileView(APIView):
         serializer = serializers.AttachedFileSerializer(data=attachment,context={'request':request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        Activity.objects.create(description=f"{request.user.profile.name} added attachment in card {card.name} in {card.list.name}",user=request.user.profile,board=card.list.board,list=card.list,card=card)
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class EditDeleteAttachedLinkView(APIView):
@@ -291,6 +327,7 @@ class EditDeleteAttachedLinkView(APIView):
         if not (request.user.profile in attachment.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         attachment.delete()
+        Activity.objects.create(description=f"{request.user.profile.name} removed an attachment from the card {attachment.card.name} in {attachment.card.list.name}",user=request.user.profile,board=attachment.card.list.board,list=attachment.card.list,card=attachment.card)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class EditDeleteAttachedFileView(APIView):
@@ -312,6 +349,7 @@ class EditDeleteAttachedFileView(APIView):
         if not (request.user.profile in attachment.card.list.board.members.all()):
             return Response(status=status.HTTP_403_FORBIDDEN)
         attachment.delete()
+        Activity.objects.create(description=f"{request.user.profile.name} removed an attachment from the card {attachment.card.name} in {attachment.card.list.name}",user=request.user.profile,board=attachment.card.list.board,list=attachment.card.list,card=attachment.card)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class EditDeleteLabelView(APIView):

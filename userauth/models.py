@@ -5,6 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from .validators import validate_name
+
 class UserManager(BaseUserManager):
     use_in_migrations = True
     def _create_user(self, email, password, **extra_fields):

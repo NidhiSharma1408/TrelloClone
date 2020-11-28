@@ -35,13 +35,18 @@ class IsAllowedToView(BasePermission):
         else:
             return False
 
-def is_allowed_to_watch_or_star(request,board):
+def is_allowed_to_watch_or_star(user,board):
     if board.preference.permission_level == models.Preference.permission.public:
-            return True
-    elif board.preference.permission_level == models.Preference.permission.team_members:
-        if request.user.profile in board.team.members.all():
-            return True
-    elif request.user.profile in board.members.all():
         return True
-    else:
+    if board.preference.permission_level == models.Preference.permission.team_members:
+        print('team')
+        if user in board.team.members.all():
+            return True
+        if user in board.admins.all():
+            return True
+        if user in board.members.all():
+            return True
         return False
+    if user in board.members.all():
+        return True
+    return False

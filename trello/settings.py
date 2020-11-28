@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'cards',
     'checklists',
     'corsheaders',
-    'chat'
+    'chat',
+    'activity',
 ]
 
 MIDDLEWARE = [

@@ -11,4 +11,5 @@ urlpatterns = [
     path('cards/',include('cards.urls')),
     path('',include('checklists.urls')),
     path('chat/',include('chat.urls')),
+    path('activity/',include('activity.urls')),
 ]+static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)

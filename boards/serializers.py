@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from userauth.serializers import UserProfileSerializer
 from . import models
-from lists.serializers import ListSerializer     
+from lists.serializers import ListSerializer
+from .permissions import is_allowed_to_watch_or_star
 class PreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Preference
