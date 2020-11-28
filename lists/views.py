@@ -33,7 +33,7 @@ class CreateListView(APIView):
         mail_body = f"{request.user.profile.name} created a list {data['name']} to the board {board.name}.\n You are receiving this email because you are watching the board {board.name}. If you don't want to receive such emails, you can unwatch the board."
         mail_subject = f"A list was added in {board.name}(Board)"
         send_email_to_object_watchers(board,mail_body,mail_subject)
-        Activity.objects.create(description=f"{request.user.profile.name} created list {serializer.instance.name}",user=member,board=board,list=serializer.instance)
+        Activity.objects.create(description=f"{request.user.profile.name} created list {serializer.instance.name}",user=request.user.profile,board=board,list=serializer.instance)
         return Response(serializer.data,status=status.HTTP_201_CREATED)       
 
 def get_list(list_id):

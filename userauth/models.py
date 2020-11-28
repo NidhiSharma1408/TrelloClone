@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.conf import settings
 from django.utils import timezone
+from django.core.validators import RegexValidator
 from datetime import timedelta
 from .validators import validate_name
 
@@ -34,7 +35,7 @@ class User(AbstractUser):
     username     = models.CharField(blank=True, null=True, max_length = 30)
     first_name   = models.CharField(blank=True, null=True,max_length=30)
     last_name    = models.CharField(blank=True, null=True,max_length=30)
-    email        = models.EmailField('email address', unique=True)
+    email        = models.EmailField('email address', unique=True,validators=[RegexValidator('^[a-z0-9]+[\._]?[a-z0-9]+[@][a-z0-9]+[.][a-z]+[\.[a-z]{2,3}]?$','Invalid Email','invalid')])
     is_active    = models.BooleanField(default=False)
     USERNAME_FIELD  = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
@@ -45,7 +46,7 @@ class User(AbstractUser):
 
 class UserProfile(models.Model):
     user         = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name ='profile')
-    name         = models.CharField(max_length = 30,blank=False,validators=[validate_name])
+    name         = models.CharField(max_length = 30,blank=False,validators=[RegexValidator('[@_!#$%^&*()<>?/\|}[\]{~:1234567890]','Specail Characters and numbers are not allowed','invalid',True)])
     picture      = models.ImageField(upload_to = 'profile/', blank = True, null = True, max_length = None)
     bio  = models.TextField(blank=True,null=True)
     def __str__(self):
