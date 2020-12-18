@@ -29,4 +29,4 @@ class BoardChatView(APIView):
         serializer = ChatSerializer(data=request.data,context={'request' : request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data,status=status.http201) 
+        return Response(serializer.data,status=status.HTTP_201_CREATED) 
